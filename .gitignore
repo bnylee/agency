@@ -1,0 +1,19 @@
+node_modules/
+dist/
+dist-demo/
+.venv/
+__pycache__/
+*.pyc
+
+# Never in this repo. The mirror is built by publish/make_public.py, which
+# copies from an allowlist and refuses to finish if a populated credential,
+# a username or an email survives into the output.
+.env
+*.local
+
+# The bots' own output. It is the personal half — a run report names real
+# senders, real paths and a real account — and it is regenerated on every run.
+runs/
+state/
+repairs/
+vault/

@@ -1,0 +1,55 @@
+{
+  "_comment": "Allow rules live in settings.local.json: a project settings.json's allow rules are ignored until the workspace is trusted, which breaks unattended `claude -p --permission-mode dontAsk` runs. Deny rules and hooks below apply regardless of trust, and deny always beats allow. File rules use Edit(...) not Write(...) - Write rules are not evaluated by file permission checks, while Edit rules cover every file-editing tool.",
+
+  "_comment_onedrive": "There is deliberately no blanket Edit(~/OneDrive/**) deny: this bot's own tree lives under OneDrive/Desktop/Agency, so a blanket rule would block it writing its own runs/ and the bot would fail silently every week. The OneDrive protection is instead positive - guard_writes.py permits ONLY runs/ and state/, and guard_commands.py rejects any command path resolving under OneDrive outside this bot. The denies below name the specific sibling trees worth a second lock.",
+
+  "permissions": {
+    "deny": [
+      "Edit(C:/Users/you/OneDrive/Documents/**)",
+      "Edit(C:/Users/you/OneDrive/Pictures/**)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/CLAUDE.md)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/sam-research/**)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/finance-research/**)",
+      "Edit(./policy.json)",
+      "Edit(./.claude/**)",
+      "Edit(./scripts/**)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(rm -rf:*)",
+      "Bash(rm:*)",
+      "Bash(del:*)",
+      "Bash(rmdir:*)",
+      "Bash(msiexec:*)",
+      "Bash(winget uninstall:*)",
+      "Bash(powercfg:*)",
+      "Bash(vssadmin:*)",
+      "Bash(diskpart:*)",
+      "Bash(format:*)"
+    ]
+  },
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_writes.py\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_commands.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

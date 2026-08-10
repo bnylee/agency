@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "skills": {
+    "design-dna": {
+      "source": "zanwei/design-dna",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "424622959df02c2957430bd211d2d058eb672bd43f91f48acc5031d2652a2903"
+    },
+    "json-canvas": {
+      "source": "kepano/obsidian-skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "788535277bc5f460bec97d467615a2ce97e2957dad1b1fc961e645f64c827128",
+      "licence": "MIT",
+      "vendoredFrom": "skills/json-canvas",
+      "upstreamCommit": "a1dc48e68138490d522c04cbf5822214c6eb1202",
+      "installedOn": "2026-08-04",
+      "_comment": "Vendored rather than installed via the marketplace, for the same reason Genjutsu and claudedesignskills were: `npx skills add` and `/plugin install` are user-level by nature and cannot be confined to one project. Only 2 of the 5 upstream skills were taken - obsidian-bases and obsidian-cli have no use here (Obsidian CLI is not installed on this machine and nothing consumes .base files), and defuddle is a web-scraping skill this bot has no need for. Same 'only what is used' rule as the 2-of-27 claudedesignskills install. Reviewed before enabling: both skills are pure format documentation, no shell, no network, no credential access."
+    },
+    "obsidian-markdown": {
+      "source": "kepano/obsidian-skills",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "ef409b7eeda59e2e0c5cdead334dcc997dc9459d689859b3a610ffa9af5cabc5",
+      "licence": "MIT",
+      "vendoredFrom": "skills/obsidian-markdown",
+      "upstreamCommit": "a1dc48e68138490d522c04cbf5822214c6eb1202",
+      "installedOn": "2026-08-04"
+    }
+  }
+}

@@ -1,0 +1,170 @@
+{
+  "_comment": "Quantified design DNA for the Agency control plane. tokens.css is generated from this file and is what the app consumes. Change values here, regenerate, never hand-edit tokens.css.",
+
+  "identity": {
+    "name": "Agency control plane",
+    "register": "product",
+    "_comment_register": "Impeccable's product register, not brand. This is a tool used repeatedly, not a marketing surface - the defaults that follow from that choice are denser, quieter, and faster than a brand site's.",
+    "thesis": "An observatory for autonomous agents. Instrument-panel precision in the foreground, deep space behind it. The foreground is boring on purpose so the background can be interesting."
+  },
+
+  "surfaces": {
+    "_comment": "Taken unchanged from the validated dataviz reference palette rather than tinted to a custom blue-black. Every status contrast figure below is measured against these exact surfaces; inventing a surface would invalidate all of them for a 3% aesthetic gain. Uniqueness is carried by the orrery and the shaders, not by the background hex. The 2026-08-03 restyle deliberately did NOT touch these: it bought its aesthetics with type, composition and negative space, so every contrast figure below still stands unrecomputed.",
+    "page": "#0d0d0d",
+    "surface": "#1a1a19",
+    "surface_raised": "#242422",
+    "border": "rgba(255,255,255,0.10)",
+    "gridline": "#2c2c2a",
+    "baseline": "#383835",
+
+    "_comment_hairline": "Three weights of rule, not one. The old design drew every separator at --border and boxed every element, so nothing had hierarchy. hairline separates, border encloses an input, border_strong marks hover and selection.",
+    "hairline": "rgba(255,255,255,0.06)",
+    "border_strong": "rgba(255,255,255,0.18)",
+    "veil": "rgba(13,13,13,0.72)"
+  },
+
+  "ink": {
+    "primary": "#ffffff",
+    "secondary": "#c3c2b7",
+    "muted": "#898781"
+  },
+
+  "status": {
+    "_comment": "Reserved status palette from the dataviz reference - fixed, never themed, never reused as a series colour. Contrast measured against surface #1a1a19. ALWAYS paired with a glyph and a text label; colour never carries state alone.",
+    "ok":        { "hex": "#0ca30c", "contrast_on_surface": 5.19, "glyph": "check",  "label": "ok" },
+    "partial":   { "hex": "#fab219", "contrast_on_surface": 9.49, "glyph": "warn",   "label": "partial" },
+    "failed":    { "hex": "#d03b3b", "contrast_on_surface": 3.62, "glyph": "cross",  "label": "failed" },
+    "never_run": { "hex": "#898781", "contrast_on_surface": 4.62, "glyph": "dash",   "label": "never run" },
+    "running":   { "hex": "#3987e5", "contrast_on_surface": 4.28, "glyph": "pulse",  "label": "running" }
+  },
+
+  "categorical": {
+    "_comment": "Dark-mode steps, slots 1-4, validated 2026-08-03: worst adjacent CVD dE 8.4 (protan), worst adjacent normal-vision dE 19.8, all >= 3:1 on surface, all inside lightness band. Used ONLY for the stacked disk-composition bar. Assigned in fixed order, never cycled.",
+    "validated": true,
+    "validated_on": "2026-08-03",
+    "slots": ["#3987e5", "#d95926", "#199e70", "#c98500"]
+  },
+
+  "sequential": {
+    "_comment": "Single blue hue, light to dark, for continuous magnitude (disk usage). On the dark surface an ordinal ramp goes no darker than step 600 so the step nearest the surface still clears 2:1.",
+    "hue": "blue",
+    "steps": {
+      "100": "#cde2fb", "200": "#9ec5f4", "300": "#6da7ec", "400": "#3987e5",
+      "500": "#256abf", "600": "#184f95"
+    },
+    "dark_ordinal_floor": "600"
+  },
+
+  "type": {
+    "_comment": "Geist Sans + Geist Mono, SIL OFL, self-hosted as two variable woff2 (141 KB total) from the `geist` npm package so nothing is fetched at runtime - this tool binds 127.0.0.1 and must work with no network. Replaces system-ui, which rendered as Segoe UI on the target machine and was the single largest cause of the interface reading as generic.",
+    "family": "'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif",
+    "mono": "'Geist Mono', ui-monospace, 'Cascadia Code', 'Consolas', monospace",
+    "files": [
+      { "path": "dashboard/public/fonts/Geist-Variable.woff2", "axes": "wght 100..900", "source": "npm geist@1.7.2" },
+      { "path": "dashboard/public/fonts/GeistMono-Variable.woff2", "axes": "wght 100..900", "source": "npm geist@1.7.2" }
+    ],
+
+    "_comment_voice": "Two voices, assigned by role rather than by taste. Mono is STRUCTURAL: it carries every label, timestamp, count, bot id and status - anything a machine emitted. Sans carries prose and figures - anything written for a human. That split is what makes the surface read as an instrument, and it costs nothing.",
+    "mono_roles": ["eyebrow labels", "timestamps", "counts", "bot ids", "status labels", "section heads", "table headers"],
+    "sans_roles": ["figures", "blurbs", "report prose", "panel titles"],
+
+    "scale": {
+      "figure": { "size": "clamp(2rem, 3.4vw, 2.75rem)", "weight": 300, "tracking": "-0.035em", "leading": 1.0, "family": "sans" },
+      "h1":     { "size": "1.125rem",  "weight": 500, "tracking": "-0.015em", "leading": 1.25, "family": "sans" },
+      "h2":     { "size": "0.875rem",  "weight": 500, "tracking": "-0.008em", "leading": 1.35, "family": "sans" },
+      "body":   { "size": "0.875rem",  "weight": 400, "tracking": "0", "leading": 1.55, "family": "sans" },
+      "small":  { "size": "0.8125rem", "weight": 400, "tracking": "0", "leading": 1.5, "family": "sans" },
+      "micro":  { "size": "0.65rem",   "weight": 500, "tracking": "0.14em", "leading": 1.4, "transform": "uppercase", "family": "mono" }
+    },
+    "_comment_scale": "Range widened at both ends versus the previous 15/13/11 scale, which was so compressed that nothing could be emphasised. Micro tracking raised 0.08em -> 0.14em because Geist Mono at 10.4px uppercase needs the air."
+  },
+
+  "space": {
+    "_comment": "4px base. Dense by product-register default - this is a panel, not a landing page. Steps 7-9 exist to buy the rail its negative space; the previous build never used anything above 32px and read as uniformly cramped.",
+    "unit": 4,
+    "scale": [0, 4, 8, 12, 16, 24, 32, 48, 64, 96]
+  },
+
+  "radius": {
+    "_comment": "Cut hard from 4/8/12. A 12px radius on every surface was the tell of a generic dashboard; near-square corners read as instrument rather than as card. pill survives only for the status dot.",
+    "sm": "2px", "md": "4px", "lg": "6px", "pill": "999px"
+  },
+
+  "layout": {
+    "_comment": "Rail and stage, replacing the previous centred 1180px column of three equal-weight stacked grids. The orrery was the most distinctive thing in the product and the old layout covered it with the least distinctive thing - translucent cards. Now the controls occupy a fixed-width rail and the remaining width is stage that nothing overlays. The orrery re-centres itself into the stage via camera.setViewOffset.",
+    "rail_width": "384px",
+    "topbar_height": "56px",
+    "collapse_below": "920px",
+    "_comment_collapse": "Below 920px there is no room for both, so the rail goes full width and the stage is given up rather than squeezed."
+  },
+
+  "texture": {
+    "_comment": "Register A, but static - rendered once by the compositor and never animated, so it costs nothing per frame and does not violate the frequency rule. Its job is to stop flat #0d0d0d reading as untouched CSS default.",
+    "grain": { "opacity": 0.035, "source": "inline SVG feTurbulence, baseFrequency 0.8, 2 octaves", "scope": "whole viewport, above the canvas, below the app" },
+    "grid": { "line": "rgba(255,255,255,0.02)", "size": "32px", "scope": "rail only - a grid over the stage would fight the orbit lines" }
+  },
+
+  "motion": {
+    "_comment": "Authoritative source is design/motion-spec.md. These are the machine-readable duplicates the app consumes; if they disagree, motion-spec.md is correct and this is stale.",
+    "duration": { "instant": "0ms", "feedback": "120ms", "enter": "180ms", "exit": "150ms", "move": "200ms", "sheet": "500ms" },
+    "easing": {
+      "out": "cubic-bezier(0.16, 1, 0.3, 1)",
+      "in": "cubic-bezier(0.7, 0, 0.84, 0)",
+      "inOut": "cubic-bezier(0.65, 0, 0.35, 1)",
+      "sheet": "cubic-bezier(0.32, 0.72, 0, 1)",
+      "reveal": "cubic-bezier(0.77, 0, 0.175, 1)"
+    },
+    "press_scale": 0.97,
+    "enter_scale": 0.9
+  },
+
+  "scene": {
+    "_comment": "The 3D studio's material palette, added 2026-08-04 when the scene changed from an orrery in deep space to a workshop room. These are three.js material colours and NOT CSS tokens - nothing here reaches tokens.css, so every contrast figure above still stands unrecomputed. That split is the whole reason this restyle was affordable: the brief was to recolour the bodies and the background, and the chrome was never in scope.",
+
+    "_comment_contrast": "The one figure that had to be protected is status colour against its local background. It is protected by construction rather than by measurement: every status panel is set into a bezel painted chassis.bezel, which IS surfaces.surface (#1a1a19), the exact background the status contrast figures above were measured against. So the warm room behind a bot is never the panel's local background and cannot affect it. Do not warm up chassis.bezel to match the room - it is load-bearing.",
+
+    "room": {
+      "floor": "#6d4f35", "floor_seam": "#3f2c1b",
+      "wall": "#4a403a", "wall_far": "#413833", "ceiling": "#3b3532",
+      "baseboard": "#2f2926", "steel": "#262220",
+      "brass": "#9a7b3f", "brass_bright": "#d8ab52",
+      "bench": "#57422e", "bench_steel": "#35302c", "dock": "#35302c"
+    },
+    "chassis": {
+      "bezel": "#1a1a19", "shell": "#2c2b28", "shell_lit": "#3a3835",
+      "cold": "#211f1d", "accent": "#8a7444"
+    },
+    "energy": {
+      "_comment": "Relevance conduits and auras spend NO reserved hue. Status owns green/amber/red/grey/blue and the categorical slots own the other four; a graph edge borrowing any of them would put a second meaning on a colour that already has one. Lamp-white and pale gold are unclaimed, and are also what light in a warm room looks like.",
+      "conduit": "#e8dcc4", "aura": "#d8c290"
+    },
+    "light": { "window": "#fff2dc", "lamp": "#ffd9a0", "fill": "#6a5f52" },
+
+    "tone_mapping": "none",
+    "_comment_tone_mapping": "NoToneMapping, deliberately. A filmic curve is the obvious reach for an interior and it desaturates saturated highlights - status.failed #d03b3b clears its requirement at 3.62:1 with no margin to give away, and the figures above describe the hex, not the hex after a tone curve. The room is lit to look right without one. Status panels are additionally marked toneMapped:false so the guarantee survives someone enabling it later."
+  },
+
+  "effects": {
+    "_comment": "Register A only. Every one of these is bound to real bot state - none is decorative. If a value has no data source it does not ship.",
+    "studio": {
+      "_comment": "Replaced the orrery on 2026-08-04. Two of the orrery's six channels rode on the orbits themselves and had to be rehoused rather than dropped: orbital angle became a brass dial inlaid in each dock's floor, and orbital radius became which zone of the room the dock stands in. The dial keeps the orrery's exact reading - due now at the marker, overdue drifting past it - and gains something the shared ecliptic could not do: five dials read independently, where two bots at the same phase used to overlap.",
+      "materials": "MeshStandardMaterial lit by one shadow-casting window light, two pendant lamps and a PMREM RoomEnvironment. The orrery had no lights at all - a body glowing in vacuum needs none - so this is a rewrite, not a retint.",
+      "dollhouse": "The room is one BoxGeometry with side:BackSide, so only the far faces draw. Near walls vanish at every azimuth with no visibility code, and the ceiling culls itself once the camera climbs above it - low elevation reads as an enclosed room, high elevation opens into a plan view. One gesture, two readings, no branch.",
+      "bindings": {
+        "dock_zone": "cadence (daily near, weekly mid, on-demand at the back wall)",
+        "dial_hand_angle": "time until next scheduled run",
+        "indicator_panel_colour": "last run status (status palette)",
+        "indicator_panel_glyph": "last run status, as the design-dna glyph stamped into the panel - this is what makes the 3D layer comply with 'never colour alone'",
+        "chassis_dulling": "never run -> dulled to chassis.cold, panel down to a trace",
+        "panel_pulse": "run in progress",
+        "stacked_output_count": "cumulative token spend from runs/ledger.md, 1 item per 8.5k, capped at 14",
+        "conduit_brightness": "relevance edge weight between two bots",
+        "conduit_flow_direction": "which of the two bots references the other more",
+        "aura_intensity": "the bot's relevance degree, normalised against the busiest bot"
+      },
+      "_comment_never_run": "'never run -> unlit' became 'never run -> dulled, panel at a trace'. Unlit was unambiguous against the void; in a lit room an unlit panel is indistinguishable from a panel in shadow. The bot is now conspicuously dead rather than invisible, which was always the point of that channel.",
+      "_comment_relevance": "The relevance channels are new and are the ones most at risk of being decoration, so both are countable: dashboard/server/relevance.ts derives them from the Agency's own markdown (wikilink 3, markdown link into a bot's tree 2, bare id mention 1, each capped per file). A bot nothing references gets no aura and no conduits, and absence is a reading. Scored by 14 cases in dashboard/scripts/test-relevance.ts."
+    },
+    "motes": { "count": 420, "note": "Airborne dust, confined to the volume of the window's light shaft. Literally the orrery starfield's shader and its measured one-pixel sizing rule, unretuned - three shells built to make a rotate gesture legible in deep space turn out to be dust in a sunbeam." }
+  }
+}

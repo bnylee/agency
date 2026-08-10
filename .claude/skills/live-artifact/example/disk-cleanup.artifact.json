@@ -1,0 +1,59 @@
+{
+  "bot": "disk-cleanup",
+  "title": "Weekly scan",
+  "timestamp": "2026-08-08T08:00:00-04:00",
+  "status": "partial",
+  "summary": "There is about 22 GB of space you can get back, and none of it has been touched yet. Everything listed here is a file Windows or a program can rebuild by itself, so removing it costs you nothing but the time it takes to rebuild.",
+  "metrics": [
+    { "label": "Reclaimable", "value": "22.4", "unit": "GB", "note": "across 4,812 files" },
+    { "label": "Free space on C:", "value": "108.2 GB", "note": "of 931 GB, 11.6% free" },
+    { "label": "Quarantined this run", "value": "0 GB", "note": "dry run — nothing moved" },
+    { "label": "Duplicates found", "value": "3.1 GB" }
+  ],
+  "sections": [
+    {
+      "heading": "Where the space is",
+      "kind": "bars",
+      "items": [
+        { "label": "Package manager caches", "value": 11.2, "unit": "GB", "note": "npm, pip, nuget" },
+        { "label": "Build output", "value": 6.4, "unit": "GB", "note": "node_modules, target, dist" },
+        { "label": "Windows temp", "value": 3.2, "unit": "GB" },
+        { "label": "Crash dumps", "value": 1.6, "unit": "GB" }
+      ]
+    },
+    {
+      "heading": "Biggest programs, coldest first",
+      "kind": "table",
+      "columns": ["Program", "GB", "Last used"],
+      "rows": [
+        ["Unreal Engine 5.3", "48.1", "2024-11-02"],
+        ["Android Studio", "12.7", "2025-03-18"],
+        ["Steam / Baldurs Gate 3", "11.9", "2025-06-01"]
+      ]
+    },
+    {
+      "heading": "What I did not touch",
+      "kind": "list",
+      "items": [
+        "Anything under Documents/, Desktop/ or OneDrive/",
+        "Any file changed in the last 14 days",
+        "Program installs — this bot never uninstalls anything"
+      ]
+    },
+    {
+      "heading": "How to get it back",
+      "kind": "text",
+      "body": "Nothing is deleted. Files are moved into a dated folder under C:\\DiskCleanupQuarantine and stay there until you say otherwise.\n\nTo undo a batch, run restore.ps1 with the batch date, or press Restore next to it in the control plane. Permanent deletion is purge.ps1, which only runs from a terminal and asks you to type a confirmation."
+    }
+  ],
+  "holding": [
+    "22.4 GB is staged but not moved — this was a dry run, so the live weekly run is what will move it."
+  ],
+  "failed": [
+    "Could not read the size of C:\\Windows\\CSC (access denied). That folder is excluded from the total, so the real figure may be slightly higher."
+  ],
+  "links": [
+    { "label": "Full report", "href": "2026-08-08.md" },
+    { "label": "Run ledger", "href": "../ledger.md" }
+  ]
+}

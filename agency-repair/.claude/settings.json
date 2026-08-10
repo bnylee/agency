@@ -1,0 +1,68 @@
+{
+  "_comment": "Deny rules and hooks live here: both apply regardless of workspace trust, and deny always beats allow. Allow rules live in settings.local.json for the opposite reason. File rules use Edit(...) not Write(...) - Write rules are not evaluated by file permission checks at all, so a Write(...) deny protecting something sensitive does nothing, while Edit(...) covers every file-editing tool.",
+
+  "_comment_scope": "This bot is the only one that writes outside its own folder, so its fences are the most specific in the Agency. The sibling trees are denied outright: their isolation is the point of the layout, and a repair bot with write access to all four would quietly undo it. Their bugs get diagnosed and a fix proposed under repairs/proposed/, which Benny applies.",
+
+  "_comment_self": "The denies on ./.claude/** and ./scripts/** are aimed at this bot itself. A bot that can edit its own guard hook has no guard hook, and a bot that can edit the health check can make every probe pass.",
+
+  "permissions": {
+    "deny": [
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/CLAUDE.md)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/sam-research/**)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/finance-research/**)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/disk-cleanup/**)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/interface-design/**)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/dashboard/package.json)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/dashboard/package-lock.json)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/dashboard/.env)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/dashboard/dist/**)",
+      "Edit(./.claude/**)",
+      "Edit(./scripts/**)",
+      "Edit(./CLAUDE.md)",
+
+      "Read(C:/Users/you/OneDrive/Desktop/Agency/dashboard/.env)",
+      "Read(**/.env)",
+      "Read(**/.env.local)",
+      "Read(**/node_modules/**)",
+      "Read(**/.venv/**)",
+
+      "Bash(git:*)",
+      "Bash(npm install:*)",
+      "Bash(npm i:*)",
+      "Bash(npm ci:*)",
+      "Bash(npx:*)",
+      "Bash(pip:*)",
+      "Bash(pip3:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(rm -rf:*)",
+      "Bash(rm:*)",
+      "Bash(del:*)"
+    ]
+  },
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_writes.py\"",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_commands.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

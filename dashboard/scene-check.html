@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Agency — scene check</title>
+    <!--
+      A harness for looking at the studio, and the only way to do that headlessly.
+
+      index.html gates on a token before boot() ever calls mount(), so a headless
+      screenshot of the real app shows the token prompt and tells you nothing about
+      whether the scene renders. This page mounts the studio directly against
+      synthetic bots: no API, no token, no server needed beyond Vite itself.
+
+      It is NOT part of the production build. Vite builds index.html only unless a
+      second input is declared in vite.config.ts, and none is.
+
+      The verdict panel is the point. Any shader compile error, any thrown
+      exception and a live readback of the framebuffer all render as text ON the
+      page, so a single screenshot answers "did it work" without anybody having to
+      read a console.
+    -->
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <div id="verdict"><pre id="log">booting…</pre></div>
+    <script type="module" src="/src/scene-check.ts"></script>
+  </body>
+</html>

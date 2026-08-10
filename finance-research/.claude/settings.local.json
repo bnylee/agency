@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__sec-edgar-mcp__*",
+      "mcp__maverick-mcp__*",
+      "WebSearch",
+      "WebFetch",
+      "Read(./**)",
+      "Edit(./runs/**)",
+      "Edit(./state/**)"
+    ]
+  }
+}

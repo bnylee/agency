@@ -1,0 +1,142 @@
+/* GENERATED from interface-design/design/design-dna.json — do not hand-edit.
+ *
+ * Lives here rather than in design/ because Vite restricts imports to the
+ * project root by default; the source of truth is still design-dna.json.
+ *
+ * Colour provenance: surfaces, ink, status and categorical values come from the
+ * validated dataviz reference palette. The categorical slots were re-validated
+ * against this exact dark surface on 2026-08-03 (worst adjacent CVD dE 8.4,
+ * normal-vision dE 19.8, all >= 3:1). Changing --surface invalidates every
+ * contrast figure below.
+ *
+ * The 2026-08-03 restyle changed type, space, radius, layout and texture only.
+ * Every colour below is byte-identical to the validated set, so no contrast
+ * figure needed recomputing.
+ */
+
+/* Geist Sans + Geist Mono, SIL OFL, from npm geist@1.7.2.
+ * Self-hosted: this tool binds 127.0.0.1 and must render with no network. */
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/Geist-Variable.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/GeistMono-Variable.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* surfaces */
+  --page:            #0d0d0d;
+  --surface:         #1a1a19;
+  --surface-raised:  #242422;
+  --border:          rgba(255, 255, 255, 0.10);
+  --gridline:        #2c2c2a;
+  --baseline:        #383835;
+
+  /* rules — three weights, not one. hairline separates, border encloses an
+   * input, border-strong marks hover and selection. */
+  --hairline:        rgba(255, 255, 255, 0.06);
+  --border-strong:   rgba(255, 255, 255, 0.18);
+  --veil:            rgba(13, 13, 13, 0.72);
+
+  /* ink */
+  --ink:             #ffffff;
+  --ink-secondary:   #c3c2b7;
+  --ink-muted:       #898781;
+
+  /* status — reserved. never used as a series colour, never colour-alone. */
+  --status-ok:        #0ca30c;
+  --status-partial:   #fab219;
+  --status-failed:    #d03b3b;
+  --status-never:     #898781;
+  --status-running:   #3987e5;
+
+  /* categorical — fixed order, never cycled. stacked disk bar only. */
+  --cat-1: #3987e5;
+  --cat-2: #d95926;
+  --cat-3: #199e70;
+  --cat-4: #c98500;
+
+  /* sequential — blue, light->dark. ordinal floor on dark is step 600. */
+  --seq-100: #cde2fb;
+  --seq-200: #9ec5f4;
+  --seq-300: #6da7ec;
+  --seq-400: #3987e5;
+  --seq-500: #256abf;
+  --seq-600: #184f95;
+
+  /* type — mono is structural (labels, timestamps, counts, ids), sans is for
+   * figures and prose. The split is what makes this read as an instrument. */
+  --font:      "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "Cascadia Code", "Consolas", monospace;
+
+  --t-figure: clamp(2rem, 3.4vw, 2.75rem);
+  --t-h1:     1.125rem;
+  --t-h2:     0.875rem;
+  --t-body:   0.875rem;
+  --t-small:  0.8125rem;
+  --t-micro:  0.65rem;
+
+  --tr-tight: -0.035em;
+  --tr-snug:  -0.015em;
+  --tr-wide:  0.14em;
+
+  /* space — 4px base */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px;
+
+  /* radius — near-square. a 12px radius on every surface was the tell. */
+  --r-sm: 2px; --r-md: 4px; --r-lg: 6px; --r-pill: 999px;
+
+  /* layout — rail and stage */
+  --rail-w:    384px;
+  --topbar-h:  56px;
+
+  /* texture — static, composited once, never animated */
+  --grain-opacity: 0.035;
+  --grid-line: rgba(255, 255, 255, 0.02);
+  --grid-size: 32px;
+
+  /* motion — authoritative source is design/motion-spec.md */
+  --d-instant:  0ms;
+  --d-feedback: 120ms;
+  --d-enter:    180ms;
+  --d-exit:     150ms;
+  --d-move:     200ms;
+  --d-sheet:    500ms;
+
+  --e-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --e-in:     cubic-bezier(0.7, 0, 0.84, 0);
+  --e-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --e-sheet:  cubic-bezier(0.32, 0.72, 0, 1);
+  --e-reveal: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* Reduced motion is a first-class path, not a fallback nobody looks at.
+ * Register B drops to zero; Register A is stopped by the scene code, which
+ * reads this same media query. The grain and the grid are unaffected — they
+ * never animated, so there is nothing to stop. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --d-feedback: 0ms;
+    --d-enter:    0ms;
+    --d-exit:     0ms;
+    --d-move:     0ms;
+    --d-sheet:    0ms;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

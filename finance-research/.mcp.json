@@ -1,0 +1,23 @@
+{
+  "_comment": "Absolute paths, not ${CLAUDE_PROJECT_DIR}. Claude Code sets that variable in the SPAWNED SERVER's environment, not in its own, so a bare ${CLAUDE_PROJECT_DIR} in a project-scoped .mcp.json command field does not expand -- it needs a default like ${CLAUDE_PROJECT_DIR:-.} to work at all. Verified against code.claude.com/docs/en/mcp on 2026-08-03, after both servers silently failed to load in an unattended run. Absolute paths are unambiguous and match what every other script in this bot already hardcodes.",
+
+  "_comment_timeout": "The per-server 'timeout' is a hard wall-clock limit per tool call, in MILLISECONDS, and progress notifications from the server do not extend it. It exists here because on 2026-08-04 market_data_get_market_overview returned nothing and sent no progress for 1800 seconds and then aborted, costing ~30 minutes of a 06:00 run and leaving sector/breadth context out of the report entirely. 1800s is not a coincidence: it is Claude Code's default IDLE window for stdio servers (30 minutes), which is what was actually bounding that call, since no per-call wall-clock limit was set. Values below 1000 are ignored and fall through to MCP_TOOL_TIMEOUT, whose default when unset is about 28 hours -- so leaving this out is not 'no timeout', it is a 28-hour one. Verified against code.claude.com/docs/en/mcp on 2026-08-04 against Claude Code 2.1.221.",
+
+  "mcpServers": {
+    "sec-edgar-mcp": {
+      "command": "C:\\Users\\you\\OneDrive\\Desktop\\Agency\\finance-research\\.venv\\Scripts\\sec-edgar-mcp.exe",
+      "args": ["--transport", "stdio"],
+      "env": {
+        "SEC_EDGAR_USER_AGENT": "Agency operator (you@example.com)"
+      },
+      "_comment": "240000 = 4 minutes. Longer than maverick's because a full 10-K or a multi-quarter XBRL pull is a genuinely large document fetch against SEC's rate-limited endpoints, and a fetch that is merely slow must not be killed as though it were hung.",
+      "timeout": 240000
+    },
+    "maverick-mcp": {
+      "command": "C:\\Users\\you\\OneDrive\\Desktop\\Agency\\finance-research\\.venv\\Scripts\\maverick-mcp.exe",
+      "args": ["--transport", "stdio"],
+      "_comment": "180000 = 3 minutes. This is price and indicator data off yfinance; a healthy call returns in seconds, so three minutes is already far beyond normal and anything past it is hung, not slow. The pre-market run has a hard deadline -- it must finish before 09:30 ET -- so the cost of waiting is a report that misses the open.",
+      "timeout": 180000
+    }
+  }
+}

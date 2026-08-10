@@ -1,0 +1,74 @@
+{
+  "_comment": "Thresholds and the never-touch list. quarantine.ps1 enforces never_touch in code - it is not advisory. Edit values here rather than in scripts.",
+
+  "quarantine_root": "C:\\DiskCleanupQuarantine",
+
+  "caps": {
+    "_comment": "A single run refusing to exceed these is the runaway guard. Excess is downgraded to Holding in the report rather than staged.",
+    "max_gb_per_run": 25,
+    "max_files_per_run": 5000
+  },
+
+  "thresholds": {
+    "downloads_age_days": 90,
+    "dev_artifact_age_days": 180,
+    "large_file_gb": 1.0
+  },
+
+  "downloads": {
+    "_comment": "Only these extensions are quarantine-eligible in Downloads. Everything else is report-only - a stale .docx may still be the only copy of something.",
+    "quarantine_extensions": [".exe", ".msi", ".zip", ".iso", ".7z", ".rar", ".dmg", ".pkg", ".deb", ".appx", ".msix"]
+  },
+
+  "dev_artifacts": {
+    "_comment": "Directory names treated as regenerable build output. Eligible only when the parent project's newest source file is older than dev_artifact_age_days.",
+    "directory_names": ["node_modules", ".venv", "venv", "__pycache__", "target", "build", "dist", ".gradle", ".pytest_cache", ".mypy_cache", "Pods"],
+    "source_extensions": [".py", ".js", ".ts", ".tsx", ".jsx", ".rs", ".go", ".java", ".c", ".cpp", ".h", ".cs", ".rb", ".php", ".swift", ".kt", ".md", ".json", ".toml", ".yaml", ".yml"]
+  },
+
+  "system_caches": {
+    "_comment": "Quarantine-eligible regenerable caches. Browser profile data is deliberately absent - clearing it destroys logged-in sessions, which is a privacy action, not a space action.",
+    "paths": [
+      "%LOCALAPPDATA%\\Temp",
+      "%LOCALAPPDATA%\\pip\\Cache",
+      "%LOCALAPPDATA%\\Microsoft\\Windows\\Explorer",
+      "C:\\Windows\\SoftwareDistribution\\Download"
+    ]
+  },
+
+  "never_touch": {
+    "_comment": "Enforced inside quarantine.ps1. Any candidate resolving under one of these prefixes is dropped with a logged reason, regardless of what any scan proposed.",
+    "prefixes": [
+      "C:\\Windows",
+      "C:\\Program Files",
+      "C:\\Program Files (x86)",
+      "C:\\ProgramData",
+      "C:\\Riot Games",
+      "C:\\XboxGames",
+      "C:\\NX CAD",
+      "C:\\Autodesk",
+      "C:\\SOLIDWORKS Data",
+      "C:\\Drivers",
+      "C:\\Recovery",
+      "C:\\System Volume Information",
+      "C:\\$Recycle.Bin",
+      "C:\\Users\\you\\OneDrive",
+      "C:\\DiskCleanupQuarantine"
+    ],
+    "_comment_names": "Path segments that disqualify a candidate anywhere in its path. .git and .ssh protect repo history and keys; Agency protects this bot and its siblings, notably finance-research/.venv which matches the dev-artifact pattern but is live infrastructure. 'claude' and '.claude' protect Claude Code's own scratchpad, task output and config - %LOCALAPPDATA%\\Temp\\claude sits inside a scanned cache path, so without this the bot stages the session state of whatever Claude run is happening at the time, including its own.",
+    "path_segments": [".git", ".ssh", ".gnupg", "Agency", "claude", ".claude", "AppData\\Roaming\\Microsoft\\Crypto"],
+    "_comment_files": "System files whose deletion breaks or destabilises Windows.",
+    "filenames": ["pagefile.sys", "hiberfil.sys", "swapfile.sys", "ntuser.dat", "bootmgr", "BOOTNXT"]
+  },
+
+  "report_only": {
+    "_comment": "Surfaced in the report with sizes and a suggested command, never acted on. Uninstalls are permanently here - 'do I still use this?' is a human judgement, and games are the largest category on this machine by a wide margin.",
+    "categories": [
+      "installed_programs",
+      "duplicates",
+      "recycle_bin",
+      "dism_component_cleanup",
+      "hibernation_file"
+    ]
+  }
+}

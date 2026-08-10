@@ -1,0 +1,61 @@
+name: demo
+
+# Builds the fixture-backed demo of the control plane and publishes it to
+# GitHub Pages. Nothing here touches the real Agency: `npm run build:demo` sets
+# VITE_DEMO=1, which routes the client through `src/demo/fixtures.ts` instead of
+# `fetch`, and the server is not built or started at all.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time, and let a newer push win — a queued deploy of an older
+# commit is never the one you want.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install
+        working-directory: dashboard
+        run: npm ci
+
+      - name: Build demo
+        working-directory: dashboard
+        # Pages serves a project site from /<repo>/, so the base has to carry
+        # that prefix or every asset 404s. Derived from the repo name rather
+        # than hardcoded, so renaming the repo does not silently break the site.
+        env:
+          VITE_BASE: /${{ github.event.repository.name }}/
+        run: npm run build:demo
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dashboard/dist-demo
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

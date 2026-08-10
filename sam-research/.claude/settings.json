@@ -1,0 +1,25 @@
+{
+  "_comment": "Allow rules live in settings.local.json: a project settings.json's allow rules are ignored until the workspace is trusted, which breaks unattended `claude -p --permission-mode dontAsk` runs. Deny rules and hooks below apply regardless of trust, and deny always beats allow. Note file rules use Edit(...) not Write(...) — Write rules are not evaluated by file permission checks, while Edit rules cover every file-editing tool.",
+  "permissions": {
+    "deny": [
+      "Edit(C:/Users/you/OneDrive/Documents/SAM Prototype/**)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(rm -rf:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_writes.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

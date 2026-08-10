@@ -1,0 +1,24 @@
+{
+  "_comment": "Allow rules live in settings.local.json: a project settings.json's allow rules are ignored until the workspace is trusted, which breaks unattended `claude -p --permission-mode dontAsk` runs. Deny rules and hooks below apply regardless of trust, and deny always beats allow.",
+  "permissions": {
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(rm -rf:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_writes.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

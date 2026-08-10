@@ -1,0 +1,23 @@
+{
+  "_comment": "Allow rules must live here rather than in settings.json: a project settings.json's allow rules are ignored until the workspace is trusted, and under `--permission-mode dontAsk` that denies every call, so a scheduled run fails having written nothing - the same way every time, quietly. Local settings need no trust.",
+
+  "_comment_noshell": "There is deliberately NO Bash or PowerShell allow rule. This bot's agent reads JSON and writes prose; every network read and every mail operation is done by scripts/collect.py and scripts/triage.py, invoked by run_sweep.ps1 before and after the agent runs. That is the same split finance-research uses for its broker, and it is what makes the trash bin auditable: the model explains the classification, it never performs one. If the agent could shell out, it could also reach imaplib directly, and then no rule in classify.py would be load-bearing any more.",
+
+  "_comment_nofetch": "There is also no WebFetch and no WebSearch. This bot summarises what arrived; it has no reason to go and read the internet, and a bot holding live mail credentials is the last one that should be following links out of the messages it just read.",
+
+  "_comment_env": "Read(./**) deliberately does NOT include .env or state/graph-token.json - both are carved back out by deny rules in settings.json, which beat these. The agent never needs a credential to write a digest, and a credential in a transcript is a credential in a log file.",
+
+  "permissions": {
+    "allow": [
+      "Read(./runs/**)",
+      "Read(./state/collect-latest.json)",
+      "Read(./state/trash-bin.json)",
+      "Read(./state/dryrun/**)",
+      "Read(./CLAUDE.md)",
+      "Read(C:/Users/you/OneDrive/Desktop/Agency/CLAUDE.md)",
+      "Read(C:/Users/you/OneDrive/Desktop/Agency/.claude/skills/live-artifact/**)",
+      "Edit(./runs/**)",
+      "Edit(./state/dryrun/**)"
+    ]
+  }
+}

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Agency — control plane</title>
+    <!-- The brand mark, inline. Was a 404 on every load; an inline data URI
+         costs no request and keeps this working with no network. -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='5' fill='%233987e5'/%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%232c2c2a' stroke-width='2'/%3E%3C/svg%3E" />
+    <!-- Both faces are used above the fold, so preload rather than let the
+         swap flash. Self-hosted; nothing here touches the network. -->
+    <link rel="preload" href="/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/GeistMono-Variable.woff2" as="font" type="font/woff2" crossorigin />
+  </head>
+  <body>
+    <!-- Register A. aria-hidden because every fact it encodes is also present as
+         text in the rail; a screen reader should not have to parse a 3D room. -->
+    <canvas id="scene" aria-hidden="true"></canvas>
+
+    <!-- Static texture. Composited once, never animated, so it costs nothing
+         per frame and does not violate the frequency rule. -->
+    <div id="grain" aria-hidden="true"></div>
+
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-name">Agency</span>
+          <span class="brand-sub">control plane</span>
+        </div>
+        <div class="topbar-actions">
+          <span id="poll-state" class="stamp" role="status" aria-live="polite"></span>
+          <button id="view-toggle" class="btn btn-ghost" type="button" aria-pressed="false">Table</button>
+          <button id="cmd-open" class="btn btn-ghost" type="button" title="Command palette">⌘K</button>
+        </div>
+      </header>
+
+      <!-- Rail carries every control; stage is deliberately empty so the studio
+           has somewhere to be. See design-dna.json → layout. -->
+      <div class="shell">
+        <aside class="rail">
+          <section id="metrics" aria-label="Overview"></section>
+          <section id="bots" aria-label="Bots"></section>
+          <section id="quarantine" aria-label="Quarantine batches"></section>
+        </aside>
+
+        <div class="stage">
+          <!-- The rotate gesture is undiscoverable otherwise: right-drag is not
+               a convention anyone tries unprompted on a web page. -->
+          <div class="stage-hint" aria-hidden="true">
+            <span>select a body</span>
+            <span>right-drag to rotate</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-root"></div>
+    <div id="cmd-root" hidden></div>
+    <div id="token-gate" hidden></div>
+    <div id="toast-root" class="toast-root" role="status" aria-live="polite"></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

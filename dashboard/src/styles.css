@@ -1,0 +1,1035 @@
+@import "./tokens.css";
+
+/* ============================================================================
+ * Agency control plane — Register B surface.
+ *
+ * Composition: an L of opaque chrome (topbar + left rail) against an open
+ * stage that nothing overlays. The previous build floated translucent cards
+ * across the middle of the viewport, which obscured the studio with the least
+ * distinctive elements in the product.
+ *
+ * The chrome is OPAQUE on purpose, and that is a contrast decision rather than
+ * a stylistic one: every status contrast figure in design-dna.json is measured
+ * against #1a1a19, and a translucent rail would put status text over whatever
+ * the studio happened to render behind it. The rail paints --page (#0d0d0d),
+ * which is darker than the validated surface and therefore strictly higher
+ * contrast for every status colour. No figure needed recomputing.
+ *
+ * Type: mono is structural (labels, timestamps, counts, ids, status), sans is
+ * for figures and prose. Deciding which voice an element speaks in is the
+ * typographic equivalent of deciding which motion register it belongs to.
+ * ========================================================================= */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--t-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ------------------------------------------------------------- layers ---- */
+
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+}
+
+/* Only while a right-drag is actually in flight. A permanent `grab` cursor would
+ * be a lie: the left button selects, and this canvas spans the whole viewport. */
+#scene.dragging { cursor: grabbing; }
+
+/* Static grain. Never animated — it is composited once and then forgotten, so
+ * it costs nothing per frame. Desaturated in the filter because feTurbulence
+ * emits colour noise, which would tint the surface. */
+#grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+#app {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;         /* the stage stays clickable through the app */
+}
+
+/* ------------------------------------------------------------- topbar ---- */
+
+.topbar {
+  pointer-events: auto;
+  flex: none;
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: 0 var(--s-5);
+  background: var(--page);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.brand { display: flex; align-items: center; gap: var(--s-3); min-width: 0; }
+.brand-name {
+  font-size: var(--t-h2);
+  font-weight: 500;
+  letter-spacing: var(--tr-snug);
+}
+.brand-sub {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  color: var(--ink-muted);
+}
+.brand-mark {
+  width: 6px; height: 6px; border-radius: var(--r-pill);
+  background: var(--status-running);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--status-running) 70%, transparent);
+  flex: none;
+}
+
+.topbar-actions { display: flex; align-items: center; gap: var(--s-2); }
+
+/* Poll timestamp. Machine-emitted, so mono, and tabular so the seconds digit
+ * ticking over does not shift everything to its left. */
+.stamp {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+  margin-right: var(--s-2);
+}
+
+/* The public demo build only. Outlined in a neutral rather than a status hue —
+ * every one of those five is reserved for what a bot did, and "this page is a
+ * demo" is a fact about the build, not about a run. It is not dismissible: the
+ * caveat has to outlast the visitor's attention span. */
+.demo-badge {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-secondary);
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
+  padding: 2px 6px;
+  margin-right: var(--s-2);
+  cursor: help;
+}
+
+/* -------------------------------------------------------- rail + stage --- */
+
+.shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  pointer-events: none;         /* transparent; only the rail takes clicks */
+}
+
+.rail {
+  pointer-events: auto;
+  flex: none;
+  width: var(--rail-w);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--s-6) var(--s-5) var(--s-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-7);
+  background-color: var(--page);
+  /* Hairline grid, rail only. Over the stage it would fight the orbit lines. */
+  background-image:
+    linear-gradient(to right,  var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+  border-right: 1px solid var(--hairline);
+}
+.rail::-webkit-scrollbar { width: 10px; }
+.rail::-webkit-scrollbar-thumb { background: var(--gridline); border: 3px solid var(--page); border-radius: var(--r-pill); }
+
+.stage { flex: 1; position: relative; pointer-events: none; }
+.stage-hint {
+  position: absolute;
+  right: var(--s-5); bottom: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--s-1);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  color: var(--ink-muted);
+  opacity: 0.5;
+}
+
+/* -------------------------------------------------------- section heads -- */
+
+.sec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: var(--s-1);
+}
+.sec-head h2 {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  color: var(--ink-secondary);
+}
+.sec-head .hint {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  color: var(--ink-muted);
+  text-align: right;
+}
+
+/* ------------------------------------------------------------ metrics ---- */
+/* One figure large, the rest as a compact ledger. The previous build gave four
+ * numbers identical weight in four identical boxes, so none of them led. */
+
+.metric-lead { margin-bottom: var(--s-5); }
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  color: var(--ink-muted);
+}
+/* Proportional figures on the hero number; tabular is reserved for columns
+ * that must align vertically. */
+.figure {
+  font-size: var(--t-figure);
+  font-weight: 300;
+  letter-spacing: var(--tr-tight);
+  line-height: 1;
+  margin: var(--s-3) 0 var(--s-3);
+}
+.figure .unit {
+  font-size: 0.34em;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--ink-muted);
+  margin-left: 0.35em;
+}
+
+/* Sequential ramp, one hue light->dark. Not a rainbow, not status colours.
+ * 3px: a magnitude strip, not a component. */
+.usage-bar { display: flex; height: 3px; overflow: hidden; gap: 2px; }
+.usage-seg { height: 100%; }
+
+.metric-note {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  color: var(--ink-muted);
+  margin-top: var(--s-2);
+}
+
+.ledger { display: flex; flex-direction: column; }
+.ledger-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  color: var(--ink-muted);
+}
+.ledger-line b {
+  font-weight: 500;
+  color: var(--ink-secondary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  text-align: right;
+  min-width: 0;
+}
+
+/* A ledger value that is prose rather than a figure — set by ledgerLine() in
+ * components.ts past 28 characters. The row becomes two lines and the value drops
+ * out of the mono/uppercase/wide-tracked voice, which is right for `95.0 K` and
+ * unreadable for a 71-character sentence. `interface-design`'s real statusDetail is
+ * exactly that, and on one right-aligned line it crushed its own label. */
+.ledger-line[data-long] {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s-1);
+}
+.ledger-line[data-long] b {
+  text-align: left;
+  font-family: var(--bot-body, var(--font));
+  font-size: var(--t-small);
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+/* --------------------------------------------------------------- rows ---- */
+/* Hairline-ruled rows, no cards. Each row carries a 2px status accent on its
+ * leading edge — redundant with the glyph and the label, never instead of. */
+
+.rows { display: flex; flex-direction: column; }
+
+.row {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  padding: var(--s-4) var(--s-2) var(--s-4) var(--s-4);
+  cursor: pointer;
+  transition: background-color var(--d-feedback) var(--e-out);
+}
+.row::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--accent, var(--status-never));
+  opacity: 0.5;
+  transition: opacity var(--d-feedback) var(--e-out);
+}
+.row:hover { background: rgba(255, 255, 255, 0.022); }
+.row:hover::before { opacity: 1; }
+.row:focus-visible { outline: 1px solid var(--status-running); outline-offset: -1px; }
+.row[aria-selected="true"] { background: rgba(255, 255, 255, 0.045); }
+.row[aria-selected="true"]::before { opacity: 1; }
+
+/* A row inside a themed panel, accented with that bot's own hue. Used for the
+ * media digest's important-mail rows: priority needs a visual weight, and every
+ * reserved status colour is spoken for, so it borrows --bot-accent — which by
+ * construction is never one of them. */
+.row-accent { --accent: var(--bot-accent, var(--ink-secondary)); }
+.row-accent::before { opacity: 1; }
+.row-accent:hover { background: transparent; }
+
+/* Something happening inside the day. Weight and a rule, never a status colour:
+ * "soon" is not "ok" or "failed" and must not borrow either. */
+.row-urgent td:first-child { color: var(--ink); font-weight: 500; }
+tr.row-urgent { box-shadow: inset 2px 0 0 var(--bot-accent, var(--ink-secondary)); }
+tr.row-urgent td:first-child { padding-left: var(--s-3); }
+
+/* Rows with no run status get a neutral rule. Borrowing a reserved status
+ * colour to decorate a quarantine batch would make green mean two things. */
+.row-neutral { --accent: var(--gridline); }
+.row-neutral:hover { background: transparent; }
+.row-neutral::before, .row-neutral:hover::before { opacity: 1; }
+
+.row[data-status="ok"]        { --accent: var(--status-ok); }
+.row[data-status="partial"]   { --accent: var(--status-partial); }
+.row[data-status="failed"]    { --accent: var(--status-failed); }
+.row[data-status="never_run"] { --accent: var(--status-never); }
+.row[data-status="running"]   { --accent: var(--status-running); }
+
+.row-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
+/* Bot ids are machine identifiers, so they speak in mono. */
+.row-name {
+  font-family: var(--font-mono);
+  font-size: var(--t-small);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.row-blurb {
+  font-size: var(--t-small);
+  color: var(--ink-muted);
+  margin-top: var(--s-1);
+}
+.row-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-top: var(--s-3);
+}
+.row-meta {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  line-height: 1.7;
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.row-meta b { color: var(--ink-secondary); font-weight: 500; }
+
+/* Status: glyph + label + colour. Colour never carries state alone.
+ * No border, no fill — the box around this was doing nothing the colour and
+ * the glyph were not already doing. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+}
+.chip .glyph { font-size: 10px; line-height: 1; }
+.chip[data-status="ok"]        { color: var(--status-ok); }
+.chip[data-status="partial"]   { color: var(--status-partial); }
+.chip[data-status="failed"]    { color: var(--status-failed); }
+.chip[data-status="never_run"] { color: var(--status-never); }
+.chip[data-status="running"]   { color: var(--status-running); }
+
+/* Token-spend trace, full row width. Drawn in muted ink rather than in the
+ * bot's status colour: status colour is reserved, and a coloured line here
+ * would let a chart series impersonate a state. */
+.spark { display: block; width: 100%; height: 14px; margin-top: var(--s-3); overflow: visible; }
+
+/* ------------------------------------------------------------ buttons ---- */
+
+.btn {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  padding: 5px 8px 5px calc(8px + 0.14em);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color var(--d-feedback) var(--e-out), color var(--d-feedback) var(--e-out);
+}
+.btn:hover { border-color: var(--border-strong); color: var(--ink); }
+.btn:focus-visible { outline: 1px solid var(--status-running); outline-offset: 1px; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-ghost { border-color: transparent; }
+.btn-ghost:hover { border-color: var(--hairline); }
+.btn[aria-pressed="true"] { color: var(--ink); border-color: var(--border-strong); }
+
+/* -------------------------------------------------------------- panel ---- */
+
+/* There is deliberately no panel scrim. It used to be a full-viewport overlay,
+ * which made the rail and the studio dead for as long as a panel was open —
+ * directly against the motion spec's rule that Register A never blocks
+ * interaction. Its two jobs are done better elsewhere: the scene dims itself
+ * and pushes unfocused bodies back (a dim bound to real state, not a grey
+ * rectangle), and clicking empty stage still closes, because the click reaches
+ * the canvas and misses every body. `--veil` is still used by .cmd-scrim, which
+ * IS modal and should be. */
+
+.panel {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(720px, 100vw);
+  background: var(--surface);      /* the validated surface, exactly */
+  border-left: 1px solid var(--border);
+  z-index: 11;
+  display: flex; flex-direction: column;
+  will-change: transform;
+}
+.panel-head {
+  flex: none;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
+  padding: var(--s-3) var(--s-5);
+  min-height: var(--topbar-h);
+  border-bottom: 1px solid var(--hairline);
+  /* The theme's own header band. Default is nothing; each theme paints its own.
+   * Sits UNDER the head's content and above --surface, never behind the chip —
+   * see .panel-head .chip below for why that distinction is load-bearing. */
+  background-image: var(--bot-band, none);
+  background-repeat: repeat;
+}
+.panel-title { display: flex; align-items: center; gap: var(--s-4); min-width: 0; }
+.panel-ident { min-width: 0; }
+.panel-role {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  color: var(--ink-muted);
+  margin-bottom: 1px;
+}
+.panel-title h2 {
+  margin: 0;
+  /* Themed. Falls back to mono, which is what every panel used to be. */
+  font-family: var(--bot-display, var(--font-mono));
+  font-size: var(--bot-title-size, var(--t-h2));
+  font-weight: var(--bot-title-weight, 500);
+  letter-spacing: var(--bot-title-tracking, -0.01em);
+  text-transform: var(--bot-title-case, none);
+  color: var(--ink);
+  line-height: 1.15;
+}
+.panel-sigil {
+  flex: none;
+  display: grid; place-items: center;
+  width: 28px; height: 28px;
+  border-radius: var(--bot-sigil-radius, var(--r-sm));
+  border: 1px solid var(--bot-accent, var(--border));
+  color: var(--bot-accent, var(--ink-secondary));
+  font-family: var(--bot-display, var(--font-mono));
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* THE STATUS CHIP CARRIES ITS OWN BACKGROUND, AND THIS IS NOT COSMETIC.
+ *
+ * Every status contrast figure in design-dna.json is measured against #1a1a19 —
+ * ok 5.19, partial 9.49, failed 3.62, never_run 4.62, running 4.28 — and
+ * --status-failed #d03b3b clears its requirement at 3.62:1 with nothing to spare.
+ * A theme's header band would otherwise become the chip's local background and
+ * every one of those figures would be a guess.
+ *
+ * Painting --surface behind the chip means the figures transfer unchanged whatever
+ * a theme does around it. It is the same trick scene/materials.ts uses in 3D: a
+ * status panel is seated in a bezel painted #1a1a19 so the sky behind the bot is
+ * never its local background. Same problem, same answer, two renderers.
+ *
+ * Do not remove this to "let the band show through". */
+.panel-head .chip,
+.digest-status .chip {
+  background: var(--surface);
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+}
+
+.panel-body { flex: 1; overflow-y: auto; padding: var(--s-5) var(--s-5) var(--s-8); }
+
+/* ------------------------------------------------------- run-report digest -- */
+/* The four questions you open a panel to ask, lifted out of the report and shown
+ * first. The full report goes behind a disclosure below. Nothing is hidden that
+ * was not already several screens down. */
+
+.digest { margin-bottom: var(--s-5); }
+.digest-fields { display: flex; flex-direction: column; }
+.digest-status {
+  display: flex; align-items: center; gap: var(--s-4);
+  padding-bottom: var(--s-3);
+  margin-bottom: var(--s-2);
+  border-bottom: 1px solid var(--hairline);
+}
+.digest-field {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  gap: var(--s-4);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.digest-label {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  color: var(--ink-muted);
+  padding-top: 2px;
+}
+.digest-value {
+  font-family: var(--bot-body, var(--font));
+  font-size: var(--bot-body-size, var(--t-small));
+  line-height: var(--bot-leading, 1.65);
+  color: var(--ink-secondary);
+  min-width: 0;
+}
+.digest-value p { margin: 0 0 var(--s-2); }
+.digest-value p:last-child { margin-bottom: 0; }
+.digest-value code { font-family: var(--font-mono); font-size: 0.92em; color: var(--ink); }
+.digest-value a { color: var(--status-running); }
+.digest-empty .digest-value { font-family: var(--font-mono); font-size: var(--t-micro); text-transform: uppercase; letter-spacing: var(--tr-wide); }
+/* Failed and Holding get the accent rule, because those are the two that mean
+ * somebody has to do something. Drawn as a left edge rather than as coloured
+ * text: the status colours are reserved and a red paragraph would make red mean
+ * two things. */
+.digest-field[data-field="failed"] { border-left: 2px solid var(--status-failed); padding-left: var(--s-3); }
+.digest-field[data-field="holding"] { border-left: 2px solid var(--status-partial); padding-left: var(--s-3); }
+.digest-field[data-field="failed"].digest-empty,
+.digest-field[data-field="holding"].digest-empty { border-left-color: var(--gridline); }
+
+/* "full text below" after a clamped value. Mono and muted, so it reads as a
+ * pointer rather than as part of the sentence it follows. */
+.digest-more {
+  display: block;
+  margin-top: var(--s-1);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  color: var(--ink-muted);
+}
+
+/* A report with more than one `## ` block — something was appended after the run
+ * wrote its report, usually a failure. Amber rule, because it is the same class of
+ * fact as Holding: you need to go and look. Not a status colour on the text, which
+ * stays reserved. */
+.digest-appended {
+  border-left: 2px solid var(--status-partial);
+  padding-left: var(--s-3);
+}
+
+.report-full { margin-top: var(--s-4); }
+.report-full > summary {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: var(--s-2) 0;
+  border-top: 1px solid var(--hairline);
+}
+.report-full > summary:hover { color: var(--ink-secondary); }
+.report-full[open] > summary { margin-bottom: var(--s-4); }
+
+/* ============================================================================
+ * PER-BOT THEMES
+ *
+ * What a theme may change: type, tracking, the accent used for rules and titles,
+ * the header band, and the structural template.
+ *
+ * What a theme may NOT change: the panel's base surface (--surface, #1a1a19) and
+ * the five status hexes. Every status contrast figure in design-dna.json is
+ * measured against that surface and --status-failed has 0.62 of margin over its
+ * 3:1 requirement. Tinting the panel background would invalidate all five, and the
+ * first one to break would be the one that means "this bot is broken".
+ *
+ * Fonts are SYSTEM STACKS, not webfonts. This server binds 127.0.0.1 and must
+ * render with no network — the constraint that put Geist in public/fonts/ rather
+ * than on a CDN. Each stack is built from faces that ship with Windows 11 and ends
+ * at Geist, so a machine without them degrades to the house face.
+ *
+ * --bot-accent is the SAME HUE as the bot's model tint in scene/bots3d.ts
+ * (BOT_LOOK), so the panel and the 3D character agree about who this is.
+ * ========================================================================= */
+
+.panel { --bot-accent: var(--ink-secondary); }
+
+/* sam-research — a reading room. Serif, generous measure, double rules under
+ * headings. It is the bot that reads and re-reads, so its panel reads like
+ * something printed. */
+.panel[data-bot="sam-research"] {
+  --bot-accent: #b09fd4;
+  --bot-display: Georgia, "Iowan Old Style", Constantia, "Times New Roman", var(--font);
+  --bot-body: Georgia, Constantia, "Times New Roman", var(--font);
+  --bot-title-size: 1.35rem;
+  --bot-title-weight: 400;
+  --bot-title-tracking: -0.005em;
+  --bot-body-size: 0.9375rem;
+  --bot-leading: 1.75;
+  --bot-sigil-radius: var(--r-pill);
+}
+.panel[data-bot="sam-research"] .sec-head { border-bottom-style: double; border-bottom-width: 3px; }
+.panel[data-bot="sam-research"] .report { max-width: 62ch; }
+.panel[data-bot="sam-research"] .report h2,
+.panel[data-bot="sam-research"] .report h3 {
+  font-family: var(--bot-display);
+  font-size: 1rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--bot-accent);
+}
+
+/* finance-research — a ticker tape. Mono throughout, tabular figures, a dashed
+ * top rule like perforated paper. */
+.panel[data-bot="finance-research"] {
+  --bot-accent: #d69fb0;
+  --bot-display: var(--font-mono);
+  --bot-body: var(--font-mono);
+  --bot-title-size: 1.05rem;
+  --bot-title-tracking: 0.02em;
+  --bot-body-size: 0.8125rem;
+  --bot-leading: 1.7;
+  --bot-band: repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 9px);
+}
+.panel[data-bot="finance-research"] .digest-value,
+.panel[data-bot="finance-research"] .report { font-variant-numeric: tabular-nums; }
+.panel[data-bot="finance-research"] .sec-head { border-bottom-style: dashed; }
+.panel[data-bot="finance-research"] .panel-sigil { border-radius: var(--r-pill); }
+
+/* disk-cleanup — a shipping manifest. Condensed DIN, wide tracking, a hatched
+ * header band. Everything this bot produces is a label on a crate. */
+.panel[data-bot="disk-cleanup"] {
+  --bot-accent: #dcae8c;
+  --bot-display: "Bahnschrift SemiCondensed", Bahnschrift, "DIN Alternate", "Franklin Gothic Medium", var(--font);
+  --bot-body: "Segoe UI", Corbel, var(--font);
+  --bot-title-size: 1.3rem;
+  --bot-title-weight: 600;
+  --bot-title-case: uppercase;
+  --bot-title-tracking: 0.06em;
+  --bot-body-size: 0.875rem;
+  --bot-leading: 1.62;
+  --bot-band: repeating-linear-gradient(135deg, rgba(220,174,140,0.055) 0 6px, transparent 6px 12px);
+  --bot-sigil-radius: 0;
+}
+.panel[data-bot="disk-cleanup"] .sec-head h2,
+.panel[data-bot="disk-cleanup"] .digest-label {
+  font-family: var(--bot-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+}
+.panel[data-bot="disk-cleanup"] .sec-head { border-bottom-width: 2px; border-bottom-color: var(--gridline); }
+
+/* interface-design — a type specimen sheet. Tight tracking, a lot of air, heads
+ * marked with a heavy accent bar instead of a rule. It owns how this page looks,
+ * so its own panel is the one showing off. */
+.panel[data-bot="interface-design"] {
+  --bot-accent: #c98fc4;
+  --bot-display: var(--font);
+  --bot-body: var(--font);
+  --bot-title-size: 1.5rem;
+  --bot-title-weight: 300;
+  --bot-title-tracking: -0.035em;
+  --bot-body-size: 0.9375rem;
+  --bot-leading: 1.72;
+}
+.panel[data-bot="interface-design"] .panel-body { padding-top: var(--s-6); }
+.panel[data-bot="interface-design"] .sec-head {
+  border-bottom: 0;
+  border-left: 3px solid var(--bot-accent);
+  padding-left: var(--s-3);
+  padding-bottom: 0;
+  margin-bottom: var(--s-4);
+}
+.panel[data-bot="interface-design"] .digest-field { padding: var(--s-4) 0; }
+.panel[data-bot="interface-design"] .panel-sigil { border-radius: var(--r-pill); font-size: 15px; }
+
+/* agency-repair — a service log. Fixed-pitch, boxed section heads, a hazard band
+ * on the header. It is the only bot that rewrites code, and its panel should feel
+ * like a maintenance record. */
+.panel[data-bot="agency-repair"] {
+  --bot-accent: #9fa3c4;
+  --bot-display: Consolas, "Cascadia Mono", var(--font-mono);
+  --bot-body: Consolas, "Cascadia Mono", var(--font-mono);
+  --bot-title-size: 1.05rem;
+  --bot-title-weight: 700;
+  --bot-title-tracking: 0.01em;
+  --bot-body-size: 0.8125rem;
+  --bot-leading: 1.68;
+  --bot-band: repeating-linear-gradient(45deg, rgba(159,163,196,0.07) 0 8px, transparent 8px 16px);
+  --bot-sigil-radius: 0;
+}
+.panel[data-bot="agency-repair"] .sec-head {
+  border: 1px solid var(--gridline);
+  padding: var(--s-2) var(--s-3);
+  margin-bottom: var(--s-3);
+}
+.panel[data-bot="agency-repair"] .digest-label { color: var(--bot-accent); }
+
+/* media-bot — a switchboard slip. Humanist sans, soft rounded marks, a dotted
+ * band. The friendliest panel in the set, because it is the one you read first
+ * thing in the morning. */
+.panel[data-bot="media-bot"] {
+  --bot-accent: #8fbfd0;
+  --bot-display: Candara, "Segoe UI Variable Display", "Segoe UI", Corbel, var(--font);
+  --bot-body: Candara, "Segoe UI Variable Text", "Segoe UI", var(--font);
+  --bot-title-size: 1.4rem;
+  --bot-title-weight: 400;
+  --bot-title-tracking: -0.01em;
+  --bot-body-size: 0.9375rem;
+  --bot-leading: 1.7;
+  --bot-band: radial-gradient(rgba(143,191,208,0.10) 1px, transparent 1px);
+  --bot-sigil-radius: var(--r-pill);
+}
+.panel[data-bot="media-bot"] .panel-head { background-size: 10px 10px; }
+.panel[data-bot="media-bot"] .sec-head h2 { color: var(--bot-accent); }
+.panel[data-bot="media-bot"] .digest-field { border-bottom-color: rgba(143,191,208,0.12); }
+
+/* Shared: every theme's accent reaches the same three places, so adding a theme
+ * is one variable rather than six selectors. */
+.panel .view-tabs .btn[aria-pressed="true"] {
+  color: var(--ink);
+  border-color: var(--bot-accent);
+}
+.panel .metric-lead .figure { font-family: var(--bot-display, var(--font)); }
+.panel .report { font-family: var(--bot-body, var(--font)); font-size: var(--bot-body-size, var(--t-small)); line-height: var(--bot-leading, 1.7); }
+
+/* Options block. What this bot can be told to do, above what it has already
+ * done — the panel answers "now what" before it answers "what happened".
+ * Deliberately carries no motion of its own: it rides in on the sheet and then
+ * holds still, because a second animation on a surface opened many times a day
+ * is precisely what the frequency rule spends its budget avoiding. */
+.options { margin-bottom: var(--s-6); }
+.option-actions {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2);
+  margin: var(--s-4) 0 var(--s-5);
+}
+/* An armed confirm borrows the failed colour because it is the one reserved
+ * role that means "this is the consequential press". It is paired with changed
+ * label text, so it is never colour alone. */
+.btn[data-armed="true"] {
+  color: var(--status-failed);
+  border-color: var(--status-failed);
+}
+
+/* View tabs. Buttons, not a segmented control: there are two or three of them
+ * and a track around them would be a component where a rule will do. */
+.view-tabs {
+  display: flex; flex-wrap: wrap; gap: var(--s-1);
+  padding-bottom: var(--s-3);
+  margin-bottom: var(--s-5);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.run-picker {
+  display: flex; flex-wrap: wrap; gap: var(--s-1);
+  padding-bottom: var(--s-4);
+  margin-bottom: var(--s-5);
+  border-bottom: 1px solid var(--hairline);
+}
+/* Dates are machine-emitted; tabular so the picker does not jitter. */
+.run-picker .btn { font-variant-numeric: tabular-nums; letter-spacing: 0.06em; text-indent: 0; }
+
+/* A section head that follows a ledger or a table needs air above it, or the
+ * eyebrow reads as one more row of the thing before it. */
+.view-host .sec-head { margin-top: var(--s-6); }
+.view-host > .sec-head:first-child { margin-top: 0; }
+
+/* -------------------------------------------------- portfolio + repairs --- */
+/* Account equity against the same money left in SPY. Two series separated by
+ * weight and dash, not hue: green-up/red-down is unavailable because green is
+ * reserved for "the bot ran ok", and using no new colour means no contrast
+ * figure in design-dna.json needed recomputing. */
+.equity-chart {
+  display: block; width: 100%; height: 34px;
+  margin: var(--s-4) 0 var(--s-2);
+  overflow: visible;
+}
+.chart-key {
+  display: flex; gap: var(--s-4);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  color: var(--ink-muted);
+}
+.chart-key span { display: inline-flex; align-items: center; gap: 6px; }
+.chart-key span::before {
+  content: ""; width: 14px; height: 0; flex: none;
+  border-top: 2px solid currentColor;
+}
+.chart-key .key-account { color: var(--ink-secondary); }
+.chart-key .key-bench::before { border-top-style: dashed; border-top-width: 1px; }
+
+/* P&L figures are never coloured — the sign carries the direction. Tabular so
+ * a column of them lines up on the decimal. */
+.panel-body table.plain td.num { font-variant-numeric: tabular-nums; }
+
+.disclaimer {
+  font-size: var(--t-micro);
+  line-height: 1.6;
+  color: var(--ink-muted);
+  margin-top: var(--s-6);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--hairline);
+  max-width: 68ch;
+}
+
+/* The audit trail behind "12 files". Collapsed because it can be long, present
+ * because a file count is not something to take on trust. */
+.file-list { margin-top: var(--s-3); }
+.file-list summary {
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+.file-list summary:hover { color: var(--ink-secondary); }
+.file-list ul {
+  list-style: none;
+  margin: var(--s-2) 0 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  line-height: 1.8;
+  color: var(--ink-muted);
+  word-break: break-all;
+}
+
+/* Report text renders at once. No stagger — text you wait to read wastes time. */
+.report { font-size: var(--t-small); line-height: 1.7; color: var(--ink-secondary); max-width: 68ch; }
+.report h2, .report h3 {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  margin: var(--s-6) 0 var(--s-3);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--hairline);
+}
+.report h2:first-child { margin-top: 0; }
+.report p { margin: 0 0 var(--s-3); }
+.report strong { color: var(--ink); font-weight: 500; }
+/* No chip background on inline code. The padded box inflated every line that
+ * contained one — measured 34px leading against the 22px this block specifies —
+ * which pulled prose apart wherever a path or a flag was mentioned. The mono
+ * face plus full-strength ink already distinguishes it from the body text. */
+.report code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  color: var(--ink);
+}
+/* Inside a table, full-strength ink on every path would make the whole column
+ * shout; the mono face alone is enough separation there. */
+.report td code { color: var(--ink-secondary); }
+.report a { color: var(--status-running); text-underline-offset: 2px; }
+.report table { width: 100%; border-collapse: collapse; margin: var(--s-4) 0; font-variant-numeric: tabular-nums; }
+.report th, .report td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--hairline); }
+.report th {
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wide);
+  font-weight: 500;
+}
+.report ul, .report ol { padding-left: var(--s-4); margin: 0 0 var(--s-3); }
+.report li { margin-bottom: var(--s-1); }
+.report hr { border: 0; border-top: 1px solid var(--hairline); margin: var(--s-6) 0; }
+
+/* ---------------------------------------------------- command palette ---- */
+
+.cmd-scrim { position: fixed; inset: 0; background: var(--veil); z-index: 20; display: flex; justify-content: center; padding-top: 14vh; }
+.cmd {
+  width: min(540px, 92vw); height: max-content;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+.cmd input {
+  width: 100%; padding: var(--s-4);
+  font: inherit; font-size: var(--t-body);
+  background: transparent; border: 0; border-bottom: 1px solid var(--hairline);
+  color: var(--ink); outline: none;
+}
+.cmd input::placeholder { color: var(--ink-muted); }
+.cmd ul { list-style: none; margin: 0; padding: var(--s-2); max-height: 46vh; overflow-y: auto; }
+.cmd li {
+  padding: var(--s-2) var(--s-3); border-radius: var(--r-sm);
+  cursor: pointer; font-size: var(--t-small);
+  display: flex; justify-content: space-between; align-items: center; gap: var(--s-3);
+}
+.cmd li[aria-selected="true"] { background: var(--surface-raised); }
+.cmd li .kind {
+  font-family: var(--font-mono);
+  color: var(--ink-muted); font-size: var(--t-micro);
+  text-transform: uppercase; letter-spacing: var(--tr-wide);
+}
+
+/* ----------------------------------------------------------- gate --------- */
+
+.gate { position: fixed; inset: 0; background: var(--page); z-index: 30; display: grid; place-items: center; padding: var(--s-5); }
+.gate-box { width: min(420px, 100%); }
+.gate h2 { font-size: var(--t-h1); font-weight: 500; letter-spacing: var(--tr-snug); margin: 0 0 var(--s-2); }
+.gate p { color: var(--ink-muted); font-size: var(--t-small); margin: 0 0 var(--s-5); max-width: 54ch; }
+.gate input {
+  width: 100%; padding: var(--s-3);
+  font-family: var(--font-mono); font-size: var(--t-small);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md);
+  color: var(--ink); outline: none;
+}
+.gate input:focus { border-color: var(--status-running); }
+.gate .row-actions { display: flex; gap: var(--s-2); margin-top: var(--s-3); }
+
+/* ---------------------------------------------------------------- misc --- */
+
+.toast-root { position: fixed; bottom: var(--s-5); left: 50%; transform: translateX(-50%); z-index: 40; display: flex; flex-direction: column; gap: var(--s-2); align-items: center; }
+.toast {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--s-2) var(--s-4);
+  font-size: var(--t-small);
+  max-width: 90vw;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+.toast[data-kind="error"] { border-color: var(--status-failed); color: var(--status-failed); }
+
+.muted { color: var(--ink-muted); }
+.empty {
+  color: var(--ink-muted);
+  font-size: var(--t-small);
+  padding: var(--s-4) 0;
+}
+
+table.plain { width: 100%; border-collapse: collapse; font-size: var(--t-small); font-variant-numeric: tabular-nums; }
+table.plain th, table.plain td { text-align: left; padding: var(--s-3) var(--s-4) var(--s-3) 0; border-bottom: 1px solid var(--hairline); }
+table.plain th {
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase; letter-spacing: var(--tr-wide);
+  font-weight: 500;
+}
+table.plain td:first-child { font-family: var(--font-mono); color: var(--ink); }
+table.plain td:nth-child(3), table.plain td:nth-child(4) { font-family: var(--font-mono); color: var(--ink-secondary); }
+/* Figures right-align so the digits stack; labels stay left. */
+table.plain th.num, table.plain td.num { text-align: right; padding-right: 0; font-family: var(--font-mono); }
+
+/* --------------------------------------------------------- table view ---- */
+/* The visualisation is the pleasant path, never the only one. In table view
+ * the rail stops being a rail and becomes the page. */
+
+body.table-view #scene { display: none; }
+body.table-view .stage { display: none; }
+body.table-view .rail {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  border-right: 0;
+  /* Neither chrome nor grid here: in table view the rail is the page, and
+   * painting a second --page rectangle over the body can leave a visible seam
+   * at its edge where the grain composites differently. */
+  background: none;
+}
+
+/* -------------------------------------------------------- narrow ---------- */
+/* Below 920px there is no room for both rail and stage, so the stage is given
+ * up rather than squeezed into uselessness. */
+
+@media (max-width: 920px) {
+  .stage { display: none; }
+  .rail { width: 100%; border-right: 0; }
+  #scene { opacity: 0.35; }
+}

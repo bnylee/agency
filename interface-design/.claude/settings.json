@@ -1,0 +1,36 @@
+{
+  "_comment": "Allow rules live in settings.local.json: a project settings.json's allow rules are ignored until the workspace is trusted. Deny rules and hooks below apply regardless of trust, and deny always beats allow. File rules use Edit(...) not Write(...) - Write rules are not evaluated by file permission checks.",
+
+  "_comment_siblings": "The explicit sibling denies matter more for this bot than for the others. It is the only bot that legitimately writes outside its own folder (into Agency/dashboard/), so its write guard is necessarily looser, and the other bots' safety machinery must be fenced off by name.",
+
+  "permissions": {
+    "deny": [
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/CLAUDE.md)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/sam-research/**)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/finance-research/**)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/disk-cleanup/**)",
+      "Edit(C:/Users/you/OneDrive/Documents/**)",
+      "Edit(./.claude/settings.json)",
+      "Edit(./.claude/hooks/**)",
+      "Bash(git push:*)",
+      "Bash(rm -rf:*)",
+      "Bash(powercfg:*)",
+      "Bash(msiexec:*)"
+    ]
+  },
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_writes.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

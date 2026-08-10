@@ -1,0 +1,15 @@
+{
+  "_comment": "Allow rules must live here rather than in settings.json: a project settings.json's allow rules are ignored until the workspace is trusted, and under `--permission-mode dontAsk` that denies every call, so a scheduled run fails having written nothing - the same way every time, quietly. Local settings need no trust.",
+
+  "_comment_shell": "Bash and PowerShell are allowed broadly here on purpose. The constraint is not the permission rule but .claude/hooks/guard_commands.py, which allowlists this bot's own scripts and denies everything else. Hooks apply regardless of trust and cannot be bypassed by the model; a permission-rule prefix list over shell strings can be. Markdown is intent, hooks are enforcement.",
+
+  "permissions": {
+    "allow": [
+      "Read(./**)",
+      "Edit(./runs/**)",
+      "Edit(./state/**)",
+      "Bash",
+      "PowerShell"
+    ]
+  }
+}

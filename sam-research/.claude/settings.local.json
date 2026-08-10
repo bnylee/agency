@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "_comment_www": "WebFetch(domain:...) matches the host EXACTLY -- it does not cover subdomains, so 'oecd.org' does not permit 'www.oecd.org'. The 2026-08-04 run demonstrated this twice: ictd.ac was fetched successfully while www.ictd.ac was denied, and the licence-register's own URL for that source is the www. form. Every bare registrable domain below therefore carries an explicit www. twin. Entries that already name a subdomain (api.imf.org, papers.ssrn.com, unstats.un.org, ...) get no twin, because a 'www.api.imf.org' does not exist. Adding a domain here that is NOT already listed in this bot's CLAUDE.md 'May touch' section is a capability change and is Benny's call, not a repair -- www.rug.nl and zenodo.org were both wanted by that run and are deliberately absent for that reason.",
+    "allow": [
+      "WebFetch(domain:oecd.org)",
+      "WebFetch(domain:www.oecd.org)",
+      "WebFetch(domain:ielab.info)",
+      "WebFetch(domain:www.ielab.info)",
+      "WebFetch(domain:api.imf.org)",
+      "WebFetch(domain:unstats.un.org)",
+      "WebFetch(domain:ictd.ac)",
+      "WebFetch(domain:www.ictd.ac)",
+      "WebFetch(domain:pip.worldbank.org)",
+      "WebFetch(domain:sdmx.ilo.org)",
+      "WebFetch(domain:ec.europa.eu)",
+      "WebFetch(domain:worldmrio.com)",
+      "WebFetch(domain:www.worldmrio.com)",
+      "WebFetch(domain:exiobase.eu)",
+      "WebFetch(domain:www.exiobase.eu)",
+      "WebFetch(domain:dataverse.harvard.edu)",
+      "WebFetch(domain:data360.worldbank.org)",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:www.arxiv.org)",
+      "WebFetch(domain:ssrn.com)",
+      "WebFetch(domain:www.ssrn.com)",
+      "WebFetch(domain:papers.ssrn.com)",
+      "WebSearch",
+      "Read(C:/Users/you/OneDrive/Documents/SAM Prototype/**)",
+      "Read(./**)",
+      "Edit(./runs/**)",
+      "Edit(./state/**)"
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "_comment": "Allow rules must live here rather than in settings.json: a project settings.json's allow rules are ignored until the workspace is trusted. This bot is interactive-only so it never runs under --permission-mode dontAsk, but the placement is kept consistent with its siblings so the pattern does not rot.",
+  "permissions": {
+    "allow": [
+      "Read(./**)",
+      "Read(../dashboard/**)",
+      "Read(../CLAUDE.md)",
+      "Read(../sam-research/CLAUDE.md)",
+      "Read(../finance-research/CLAUDE.md)",
+      "Read(../disk-cleanup/CLAUDE.md)",
+      "Edit(./design/**)",
+      "Edit(./runs/**)",
+      "Edit(./state/**)",
+      "Edit(../dashboard/**)",
+      "WebSearch",
+      "WebFetch",
+      "Bash",
+      "PowerShell"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ ! -f \"${CLAUDE_PROJECT_DIR}/.claude/skills/impeccable/scripts/hook.mjs\" ] || node \"${CLAUDE_PROJECT_DIR}/.claude/skills/impeccable/scripts/hook.mjs\"",
+            "timeout": 5,
+            "statusMessage": "Checking UI changes"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ ! -f \"${CLAUDE_PROJECT_DIR}/.claude/skills/impeccable/scripts/hook.mjs\" ] || node \"${CLAUDE_PROJECT_DIR}/.claude/skills/impeccable/scripts/hook.mjs\"",
+            "timeout": 30,
+            "statusMessage": "Design deep pass"
+          }
+        ]
+      }
+    ]
+  },
+  "description": "Impeccable design detector: immediate-tier checks after Edit/Write/MultiEdit on UI files, full-rule deep pass on Stop."
+}

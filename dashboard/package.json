@@ -1,0 +1,38 @@
+{
+  "name": "agency-control-plane",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Local control plane for the Agency bots. Binds 127.0.0.1 only.",
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "tsx watch server/index.ts",
+    "dev:web": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:demo": "tsc --noEmit && vite build --mode demo --outDir dist-demo",
+    "preview": "vite preview",
+    "preview:demo": "vite preview --outDir dist-demo",
+    "start": "tsx server/index.ts",
+    "vault": "tsx scripts/build-vault.ts",
+    "test:relevance": "tsx scripts/test-relevance.ts",
+    "test:scene": "tsx scripts/test-scene.ts",
+    "test:digest": "tsx scripts/test-digest.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "gsap": "^3.12.7",
+    "lenis": "^1.1.18",
+    "three": "^0.171.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.5",
+    "@types/three": "^0.171.0",
+    "concurrently": "^9.1.2",
+    "geist": "^1.7.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  }
+}

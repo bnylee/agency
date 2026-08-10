@@ -1,0 +1,61 @@
+{
+  "_comment": "Allow rules live in settings.local.json: a project settings.json's allow rules are ignored until the workspace is trusted, which breaks unattended `claude -p --permission-mode dontAsk` runs. Deny rules and hooks below apply regardless of trust, and deny always beats allow. File rules use Edit(...) not Write(...) - Write rules are not evaluated by file permission checks, while Edit rules cover every file-editing tool including Write.",
+
+  "_comment_credentials": "The two credential denies are the most important rules in this file. .env holds a Gmail app password and a Canvas token; state/graph-token.json holds a Microsoft refresh token. Both are denied for READ as well as write, because the failure mode is not the agent editing them - it is the agent quoting one into a run report, which is then rendered by the control plane and committed to runs/ forever. There is no legitimate reason for the agent to see either file: run_sweep.ps1's scripts read them, and hand the agent only the classified digest.",
+
+  "_comment_onedrive": "There is deliberately no blanket Edit(~/OneDrive/**) deny: this bot's tree lives under OneDrive/Desktop/Agency, so a blanket rule would block it writing its own runs/ and the bot would fail silently every day. The protection is positive instead - guard_writes.py permits ONLY runs/ and state/dryrun/, and denies everything else including this bot's own scripts and settings.",
+
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Edit(./.env)",
+      "Read(./state/graph-token.json)",
+      "Edit(./state/graph-token.json)",
+      "Read(./.env.example)",
+
+      "Edit(./scripts/**)",
+      "Edit(./.claude/**)",
+      "Edit(./CLAUDE.md)",
+      "Edit(./state/trash-bin.json)",
+
+      "Read(C:/Users/you/OneDrive/Desktop/Agency/dashboard/.env)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/CLAUDE.md)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/sam-research/**)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/finance-research/**)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/disk-cleanup/**)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/interface-design/**)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/agency-repair/**)",
+      "Edit(C:/Users/you/OneDrive/Desktop/Agency/dashboard/**)",
+
+      "Bash",
+      "PowerShell",
+      "WebFetch",
+      "WebSearch"
+    ]
+  },
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_writes.py\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard_reads.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
