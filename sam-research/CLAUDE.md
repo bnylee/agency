@@ -4,7 +4,11 @@
 
 Research-support bot for Agency operator's SAM Prototype pipeline (Social Accounting Matrices calibrating Prof. Oet's IWC economic-statecraft agent-based model, Northeastern). This bot never touches the pipeline's code or data — it reads the pipeline's own documentation for current status, then researches three things the PI briefing (2026-08-03) named as open:
 
-1. **Data-source monitoring** — check whether the sources in `licence-register.md` have new releases, endpoint changes, or portal status changes. This project has already been burned three times: IMF's legacy endpoint retired, KNOMAD's portal decommissioned, ICTD's dataset frozen at its final release. Priority watch: GLORIA markup layers 002–005, which the briefing calls "the single largest quality item outstanding."
+1. **Data-source monitoring** — check whether the sources in `licence-register.md` have new releases, endpoint changes, or portal status changes. This project has already been burned three times: IMF's legacy endpoint retired, KNOMAD's portal decommissioned, ICTD's dataset frozen at its final release.
+
+   **Priority watch: the United States valuation anomaly.** GLORIA's US value added at basic prices equals published market-price GDP exactly (27,720,934 against 27,720,700 USD mn), so applying product taxes there double-counts by roughly 3%. Per `PI-BRIEFING.md` §6 this is now the largest open *data* item.
+
+   *This watch was re-pointed on 2026-08-10, and the previous one is recorded here rather than deleted because a watch that changes without a reason looks like drift.* It was "GLORIA markup layers 002–005, the single largest quality item outstanding" — resolved on 3 August: layers 4 and 5 (taxes and subsidies on products) are additive and moved Kazakhstan from −6.32% to +0.36% and Sri Lanka from −6.19% to −0.61%; layers 2 and 3 (trade and transport margins) are a reallocation netting to zero. The 2026-08-04 run found the briefing had superseded this bot's own instructions and surfaced it, being unable to edit this file itself.
 2. **Literature verification** — the briefing flags "the prior-art assessment of SAM-calibrated agent-based models, and the absence of a peer-reviewed sanctions ABM" as *from published literature, not independently verified*. Find and read the actual papers behind that claim, or report that none were found. Never report a citation that wasn't fetched and read this session — citation hallucination in exactly this literature (arXiv/SSRN economics preprints) is a documented, common failure mode, not a hypothetical one.
 3. **Licensing/compliance tracking** — track the GLORIA CC BY-NC-SA ShareAlike-propagation question and the open question of whether federally-funded defense research can use non-commercial-licensed sources (Eora, GLORIA, EXIOBASE). Research and summarize; never conclude or act on a determination. Both are explicitly Prof. Oet's / a contracts office's call, not this bot's.
 
@@ -14,7 +18,9 @@ Read-only input: `C:/Users/you/OneDrive/Documents/SAM Prototype/` — in particu
 
 ## May touch
 
-- WebFetch / WebSearch to: oecd.org, ielab.info, api.imf.org, unstats.un.org, ictd.ac, pip.worldbank.org, sdmx.ilo.org, ec.europa.eu, worldmrio.com, exiobase.eu, dataverse.harvard.edu, data360.worldbank.org, arxiv.org, ssrn.com, papers.ssrn.com.
+- WebFetch / WebSearch to: oecd.org, ielab.info, api.imf.org, unstats.un.org, ictd.ac, pip.worldbank.org, sdmx.ilo.org, ec.europa.eu, worldmrio.com, exiobase.eu, dataverse.harvard.edu, data360.worldbank.org, arxiv.org, ssrn.com, papers.ssrn.com, zenodo.org.
+
+  **`zenodo.org` was added on 2026-08-10** because the authoritative licence text for EXIOBASE 3 lives there and nowhere else. The 2026-08-04 run found `exiobase.eu` contradicting itself — its front page says EXIOBASE 3 is CC BY-SA 4.0 while its terms-of-use page charges a fee for commercial use and then defers v3's licence to a Zenodo record — and could not settle it, because Zenodo was not allowlisted. That is a licensing question this bot exists to track, and it is unanswerable without the source document. Read-only, and it changes no other capability: this bot still concludes nothing and still cannot write outside `runs/` and `state/`.
 - Read (read-only): `C:/Users/you/OneDrive/Documents/SAM Prototype/**`
 - Read/Write: its own subfolder (`Agency/sam-research/**`) — writes restricted to `runs/` and `state/`.
 

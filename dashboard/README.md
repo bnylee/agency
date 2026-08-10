@@ -27,6 +27,7 @@ Then open <http://127.0.0.1:5173> and paste the same token when prompted.
 | Read `finance-research`'s simulated paper account | Run an arbitrary command |
 | Read `media-bot`'s digest, calendar and trash bin | Stage or restore mail |
 | Open the standalone HTML page a run rendered | Send, reply to or delete a message |
+| Queue a repair request for `agency-repair` | Write anything else into the Agency |
 
 **There is no purge endpoint, and adding one would be a mistake.** `purge.ps1` is
 the only thing in the Agency that permanently deletes, and it is protected by two
@@ -411,6 +412,43 @@ token is a header and never a cookie.
 Pages only exist for runs since the skill was added; the button says so when there
 is none rather than being hidden, because "this run produced no page" and "this
 feature does not exist" are different facts.
+
+### agency-repair's Requests view — the one write, and its fence
+
+Every other view in this app reads. This one sends: a box in `agency-repair`'s
+panel where you type what needs fixing, and the bot reads the queue at the start
+of its next run.
+
+It leads the panel, ahead of Reports, on the same `lead: true` opt-in `media-bot`
+uses. For every other bot the report is the product; this is the one bot you open
+in order to *tell it something*, so the box you type into is what should be in
+front of you.
+
+**This is the only endpoint that writes a new file into the Agency on a click,
+and it is a deliberate carve-out from the rule stated on the vault endpoint —
+which is still refused.** What earns it is how narrow the write is:
+
+- **One hardcoded path**, `agency-repair/state/requests.json`, never derived from
+  the request. There is no filename parameter to traverse.
+- **Inert data.** The text is stored as a JSON string and read back as one. It
+  never becomes a path, an argument or a command line; `spawn` is not involved.
+- **Bounded** at 2,000 characters and 200 open requests, and the file is
+  rewritten whole rather than appended to, so it cannot grow without limit.
+- **Written through a rename**, so the bot never reads a half-written file, and
+  through a promise chain, so two fast submissions cannot lose one another.
+
+**A request is a note asking for something; it is not authority to do it.** Every
+mechanical limit on `agency-repair` still binds when it acts on one — the Tier A
+cap of 12 files and 400 lines, the deny rules keeping it out of sibling bots,
+`.claude/` directories, `CLAUDE.md` files and lockfiles, and its PreToolUse
+hooks. Something outside those is refused by the hook rather than by the model's
+judgement, and the run reports the refusal. The UI is written to match: the
+confirmation says the bot will *read* it, never that it will be fixed.
+
+**Only a human closes a request.** The bot sets `pickedUpBy` and leaves `status`
+alone, so the panel can tell a request nothing has looked at from one a run
+considered and left open. A bot that closed its own tickets would be grading its
+own homework.
 
 ### media-bot's Inbox view
 

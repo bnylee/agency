@@ -17,7 +17,7 @@ Keep each bot's instructions in its own subfolder. Their permissions differ enou
 | [disk-cleanup](disk-cleanup/CLAUDE.md) | Disk space reclamation: quarantines regenerable files, ranks installed-program footprint by last-used, reports duplicates | Local filesystem (read), quarantine root `C:\DiskCleanupQuarantine\`, `github.com` for one-time tool install, write only its own `runs/`/`state/` | Weekly Sat 8:00am | **Tier B only** — move scan candidates to a dated quarantine batch, capped 25 GB / 5,000 files per run, reversible via `restore.ps1`. Never deletes, never uninstalls. |
 | [media-bot](media-bot/CLAUDE.md) | Notification digest, calendar, and a reversible mail bin: Gmail, Outlook/M365, Canvas, published `.ics` feeds | Gmail IMAP, `graph.microsoft.com` (read-only scopes), the Canvas instance in `CANVAS_BASE_URL`, the URLs in `ICS_URLS`, write only its own `runs/`/`state/` | Daily 7:00am | **Label moves only** — move junk-classified Gmail messages to `Agency/Trash-Candidates` and record each with the rule that condemned it, capped 200/run, reversible via `triage.py restore`. Never deletes, never sends, never replies, never marks read. **Instagram, TikTok and Snapchat have no personal notification API** — their activity email is classified from mail instead. |
 | [interface-design](interface-design/CLAUDE.md) | The Agency's designer: owns the design system for the control plane at `dashboard/` | Its own `design/`/`runs/`/`state/`, `Agency/dashboard/**`, the siblings' CLAUDE.md files (read-only), open WebSearch/WebFetch, `npm`/`node` | On-demand (no schedule, interactive only) | none |
-| [agency-repair](agency-repair/CLAUDE.md) | The Agency's repair shop: deterministic health checks over every bot and the control plane, code repair, and a weekly GitHub/Reddit sweep for things worth adopting | Read the whole Agency except `.env`/`node_modules`/`.venv`; write its own `runs/`/`state/`/`repairs/` plus `dashboard/` source (Tier A only); WebFetch locked to github/reddit/HN/`docs.claude.com`; shell limited by hook to two of its own scripts | Daily 7:15am; research sweep Sundays | **Tier A only** — apply a fix to control-plane source (`dashboard/src`, `dashboard/server`, `index.html`, `vite.config.ts`) where a named probe failed before and passes after, every original file snapshotted first and reversible via `revert.ps1`. Capped at 12 files / 400 lines per run. Never installs anything, never edits a sibling bot, a `.claude/` directory, a `CLAUDE.md`, or a lockfile. |
+| [agency-repair](agency-repair/CLAUDE.md) | The Agency's repair shop: a request queue a human types into from the control plane, deterministic health checks over every bot and the control plane, code repair, and a weekly GitHub/Reddit sweep for things worth adopting | Read the whole Agency except `.env`/`node_modules`/`.venv`; write its own `runs/`/`state/`/`repairs/` plus `dashboard/` source (Tier A only); WebFetch locked to github/reddit/HN/`docs.claude.com`; shell limited by hook to two of its own scripts | Daily 7:15am; research sweep Sundays | **Tier A only** — apply a fix to control-plane source (`dashboard/src`, `dashboard/server`, `index.html`, `vite.config.ts`) where a named probe failed before and passes after, every original file snapshotted first and reversible via `revert.ps1`. Capped at 12 files / 400 lines per run. Never installs anything, never edits a sibling bot, a `.claude/` directory, a `CLAUDE.md`, or a lockfile. |
 
 Every scheduled bot additionally renders its run into a standalone HTML page via
 the shared [`live-artifact`](.claude/skills/live-artifact/SKILL.md) skill. The bot
@@ -49,6 +49,23 @@ control plane, so a capture cannot leak a real sender, path or balance. Note tha
 404 under a non-root base, and the page then renders with no JavaScript at all.
 Both `shoot.ps1` and the Pages workflow use a plain static server, which is what
 GitHub Pages is.
+
+**Every change to the Agency ships to the mirror in the same session.** The public
+repo is `github.com/bnylee/agency` and the demo is `bnylee.github.io/agency`; both
+are on Benny's resume, so a mirror that lags is a link that misrepresents the work.
+Finish the change here, then:
+
+```
+python publish/make_public.py --out ../Agency-public --user bnylee --repo agency --keep-git
+cd ../Agency-public && git add -A && git commit && git push
+```
+
+`--keep-git` preserves the mirror's history across rebuilds; without it every push
+is a force-push of an unrelated tree. The push triggers the Pages workflow, so the
+demo redeploys on its own. If the change touched `dashboard/`, run `publish/shoot.ps1`
+first — the README screenshots are of the demo build and go stale silently otherwise.
+The mirror script refuses to finish if a credential, username or email survives into
+the output, so a clean run is also the check that nothing personal leaked.
 
 Add a row when you create a bot. "May touch" lists accounts, APIs, and MCP servers. "Autonomous actions" lists what it executes without approval, or `none`.
 

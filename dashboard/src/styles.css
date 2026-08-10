@@ -993,6 +993,51 @@ tr.row-urgent td:first-child { padding-left: var(--s-3); }
   padding: var(--s-4) 0;
 }
 
+/* ------------------------------------------------ agency-repair requests --- */
+
+/* The one input in the app that takes prose. Sans, not mono: mono is structural
+ * here — labels, ids, timestamps, anything a machine emitted — and what you type
+ * into this box is the one thing on the surface a person wrote. */
+.request-compose {
+  margin-bottom: var(--s-5);
+}
+.request-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font);
+  font-size: var(--t-small);
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: var(--s-3) var(--s-4);
+  resize: vertical;
+  min-height: 5.5em;
+}
+.request-input::placeholder {
+  color: var(--ink-muted);
+}
+.request-input:focus-visible {
+  outline: none;
+  border-color: var(--border-strong);
+}
+.request-caveat {
+  margin: var(--s-3) 0 0;
+  font-size: var(--t-micro);
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+/* Queued text is prose and wraps; row-name is mono and single-line by default,
+ * so this undoes exactly that much of it and nothing else. */
+.request-text {
+  font-family: var(--font);
+  font-weight: 400;
+  color: var(--ink-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 table.plain { width: 100%; border-collapse: collapse; font-size: var(--t-small); font-variant-numeric: tabular-nums; }
 table.plain th, table.plain td { text-align: left; padding: var(--s-3) var(--s-4) var(--s-3) 0; border-bottom: 1px solid var(--hairline); }
 table.plain th {

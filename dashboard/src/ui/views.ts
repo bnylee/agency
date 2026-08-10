@@ -15,7 +15,7 @@
  * for the same reason and one more: no new hex means no contrast figure in
  * design-dna.json needs recomputing.
  */
-import { api, type Media, type Portfolio, type RepairBatch } from "../api";
+import { api, type Media, type Portfolio, type RepairBatch, type RepairRequest, type RepairRequests } from "../api";
 import { VAULT_DIR, obsidianUri } from "../vault";
 import { el, ledgerLine, sectionHead, toast } from "./components";
 import type { PanelView } from "./panel";
@@ -471,6 +471,173 @@ export function mediaView(): PanelView {
       host.replaceChildren(frag);
     },
   };
+}
+
+/**
+ * Tell agency-repair what to fix.
+ *
+ * Every other view in this file is read-only — a report, an account, a batch
+ * list. This is the only one that sends something, and it leads the panel
+ * because it is what you open this bot to do. The Reports tab is still there
+ * and still carries the record; but the record is what happened, and this is
+ * the thing you came to say.
+ *
+ * Two deliberate refusals:
+ *
+ * **A request is never shown as a promise.** The submitted note says the bot
+ * will read it on its next run and reports what it could not do — not that it
+ * will be fixed. The bot's Tier A caps and its hooks decide what actually
+ * happens, and a UI that implied otherwise would be lying about a system whose
+ * whole premise is that limits hold mechanically.
+ *
+ * **Status here is not coloured with a run status.** An open request is not a
+ * failing bot. `--status-*` means what a run did; borrowing red for "nobody has
+ * got to this yet" would make red mean two things. Position, label and a
+ * neutral rule carry it, exactly as the quarantine and repair rows do.
+ */
+export function requestsView(): PanelView {
+  return {
+    id: "requests",
+    label: "Requests",
+    lead: true,
+    render: async (host) => {
+      host.replaceChildren(emptyRow("Loading requests…"));
+
+      let data: RepairRequests;
+      try {
+        data = await api.repairRequests();
+      } catch (e) {
+        host.replaceChildren(emptyRow(`Could not load requests: ${(e as Error).message}`));
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      // Short hint, long caveat below the box. Every other section head in the
+      // app is three or four words ("purge is terminal-only"); a sentence here
+      // squeezed the title into a three-line column.
+      frag.append(sectionHead("Ask for a fix", "read at the next run"));
+
+      /* ------------------------------------------------------------ compose */
+
+      const box = el("textarea", {
+        class: "request-input",
+        rows: "4",
+        placeholder: "What needs fixing? e.g. sam-research cannot reach GLORIA — ielab.info is client-rendered and WebFetch sees an empty shell.",
+        maxlength: String(data.limits.maxChars),
+      }) as HTMLTextAreaElement;
+
+      const count = el("span", { class: "row-meta muted" }, `0 / ${data.limits.maxChars}`);
+      const send = el("button", { class: "btn", type: "button" }, "Send to agency-repair") as HTMLButtonElement;
+      send.disabled = true;
+
+      const sync = () => {
+        const n = box.value.trim().length;
+        count.textContent = `${n} / ${data.limits.maxChars}`;
+        send.disabled = n === 0;
+      };
+      box.addEventListener("input", sync);
+
+      const submit = () => {
+        const text = box.value.trim();
+        if (!text) return;
+        send.disabled = true;
+        send.textContent = "Sending…";
+        void api.addRepairRequest(text)
+          .then(() => {
+            box.value = "";
+            toast("Queued. agency-repair reads it at the start of its next run.");
+            void requestsView().render(host);
+          })
+          .catch((e: Error) => {
+            toast(`Could not queue that: ${e.message}`, "error");
+            send.disabled = false;
+            send.textContent = "Send to agency-repair";
+          });
+      };
+      send.addEventListener("click", submit);
+      // Ctrl/Cmd+Enter submits. Plain Enter must stay a newline: these are
+      // multi-sentence descriptions of a bug, and a textarea that sends on Enter
+      // truncates half of them at the first line break.
+      box.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit(); }
+      });
+
+      frag.append(el("div", { class: "request-compose" },
+        box,
+        el("div", { class: "row-foot" }, count, send),
+        // The caveat rides with the box that creates the expectation, and it is
+        // the server's own words rather than a second copy of them drifting out
+        // of step in the client.
+        el("p", { class: "request-caveat" }, data.note)));
+
+      /* --------------------------------------------------------- the queue */
+
+      const open = data.requests.filter((r) => r.status === "open");
+      const closed = data.requests.filter((r) => r.status === "closed").slice(0, 10);
+
+      frag.append(sectionHead("Open", open.length === 0 ? "nothing queued" : `${open.length} waiting`));
+      if (open.length === 0) {
+        frag.append(emptyRow("Nothing queued. Anything you send sits here until a run picks it up, and stays until you close it."));
+      } else {
+        const rows = el("div", { class: "rows" });
+        for (const r of open) rows.append(requestRow(r, host));
+        frag.append(rows);
+      }
+
+      if (closed.length > 0) {
+        frag.append(sectionHead("Closed", `${closed.length} most recent`));
+        const rows = el("div", { class: "rows" });
+        for (const r of closed) rows.append(requestRow(r, host));
+        frag.append(rows);
+      }
+
+      host.replaceChildren(frag);
+      sync();
+    },
+  };
+}
+
+/** One request. Rendered the same open or closed, because the difference is in
+ *  the labels and the actions, not in a second layout to keep in step. */
+function requestRow(r: RepairRequest, host: HTMLElement): HTMLElement {
+  const row = el("div", { class: "row row-neutral" });
+  row.style.cursor = "default";
+
+  const when = new Date(r.createdAt);
+  const stamp = Number.isNaN(when.getTime())
+    ? r.createdAt
+    : when.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+
+  // "queued" and "seen" are different facts and the panel says which. A run that
+  // has read a request but left it open has made a decision about it; one that
+  // has never seen it has not.
+  const state = r.status === "closed"
+    ? "closed"
+    : r.pickedUpBy
+      ? `seen by ${r.pickedUpBy}`
+      : "queued";
+
+  row.append(el("div", { class: "row-top" },
+    el("span", { class: "row-name request-text" }, r.text),
+  ));
+
+  const foot = el("div", { class: "row-foot" },
+    el("span", { class: "row-meta" }, stamp, "  ·  ", state));
+
+  if (r.status === "open") {
+    const btn = el("button", { class: "btn btn-ghost", type: "button" }, "Close") as HTMLButtonElement;
+    btn.title = "Take it off the queue. This does not undo anything the bot already did.";
+    btn.addEventListener("click", () => {
+      btn.disabled = true;
+      void api.closeRepairRequest(r.id)
+        .then(() => { void requestsView().render(host); })
+        .catch((e: Error) => { toast(`Could not close that: ${e.message}`, "error"); btn.disabled = false; });
+    });
+    foot.append(btn);
+  }
+
+  row.append(foot);
+  return row;
 }
 
 export function repairsView(onChanged: () => void): PanelView {

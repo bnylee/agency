@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express, { type NextFunction, type Request, type Response } from "express";
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { AGENCY_ROOT, BOT_IDS, QUARANTINE_ROOT, REGISTRY, resolveBot } from "./registry.js";
@@ -448,6 +449,164 @@ app.get("/api/repairs", async (_req, res) => {
   } catch { /* no repairs yet; empty list is correct */ }
   batches.sort((a: any, b: any) => (a.batchId < b.batchId ? 1 : -1));
   res.json({ batches, note: "Reverting restores snapshots taken before each edit. Nothing is deleted." });
+});
+
+/* --------------------------------------------------------- repair requests */
+
+/**
+ * The human's channel back to agency-repair.
+ *
+ * The panel already shows what each bot is **Holding** — the things it drafted
+ * and needs a person to decide. This is the inverse: the things a person has
+ * noticed and wants the repair bot to look at. Without it the only way to hand
+ * the bot a job is to open a terminal and start an interactive session, which
+ * is exactly the gap the control plane exists to close.
+ *
+ * **This is the one endpoint that writes a new file into the Agency on a click,
+ * and the carve-out is deliberate and narrow.** The rule it bends — stated on
+ * the vault endpoint, which is still refused — is that a browser button may
+ * trigger a run, restore a quarantine batch or revert a repair, and may not
+ * write into the Agency. What makes this different is what it can write:
+ *
+ * - **One hardcoded path.** `agency-repair/state/requests.json`, never derived
+ *   from anything in the request. There is no filename parameter to traverse.
+ * - **Inert data.** The text is stored as a JSON string and read back as one.
+ *   It never becomes a path, an argument, or a command line — `spawn` is not
+ *   involved anywhere in this route.
+ * - **Bounded.** 2,000 characters per request, 200 open requests, and the file
+ *   is rewritten whole rather than appended to, so it cannot grow without limit.
+ *
+ * What it cannot do is more important than what it can. A request is a note
+ * asking for something; it is not authority to do it. Every mechanical limit on
+ * agency-repair still binds when it acts on one — the Tier A cap of 12 files and
+ * 400 lines, the deny rules that keep it out of sibling bots, `.claude/`
+ * directories, CLAUDE.md files and lockfiles, and its PreToolUse hooks. A
+ * request that asks for something outside those is refused by the hook, not by
+ * the model's good judgement, and the run reports the refusal.
+ */
+const REQUESTS_FILE = path.join(AGENCY_ROOT, "agency-repair", "state", "requests.json");
+const MAX_REQUEST_CHARS = 2000;
+const MAX_OPEN_REQUESTS = 200;
+
+interface RepairRequest {
+  id: string;
+  text: string;
+  createdAt: string;
+  status: "open" | "closed";
+  closedAt: string | null;
+  /** Which run, if any, has picked this up. Written by the bot, not by here. */
+  pickedUpBy: string | null;
+}
+
+async function readRequests(): Promise<RepairRequest[]> {
+  try {
+    const parsed = JSON.parse(await fs.readFile(REQUESTS_FILE, "utf8"));
+    return Array.isArray(parsed?.requests) ? parsed.requests : [];
+  } catch {
+    // No file yet, or a file the bot has mangled. An empty queue is the right
+    // reading of both: this endpoint's job is to add to a queue, not to be the
+    // authority on one it cannot parse.
+    return [];
+  }
+}
+
+async function writeRequests(requests: RepairRequest[]): Promise<void> {
+  const body = {
+    schema: 1,
+    _comment:
+      "Repair requests typed into the control plane. agency-repair reads this at the " +
+      "start of each run, addresses what it can inside its Tier A limits, and reports " +
+      "on every entry. A request is a note asking for something, not authority to do " +
+      "it -- the deny rules and PreToolUse hooks still decide what is possible.",
+    updatedAt: new Date().toISOString(),
+    requests,
+  };
+  await fs.mkdir(path.dirname(REQUESTS_FILE), { recursive: true });
+  // Write-then-rename, so a reader never sees a half-written file. The bot polls
+  // this at the start of a run and the panel polls it every 10 seconds; a torn
+  // read would be rare, silent, and impossible to reproduce.
+  const tmp = `${REQUESTS_FILE}.tmp`;
+  await fs.writeFile(tmp, JSON.stringify(body, null, 2), "utf8");
+  await fs.rename(tmp, REQUESTS_FILE);
+}
+
+/**
+ * Serialise read-modify-write. Two submissions a few milliseconds apart would
+ * otherwise both read the same array and the second would silently discard the
+ * first — the kind of lost update that only shows up as "I typed that and it
+ * vanished" and never reproduces on demand.
+ */
+let requestQueue: Promise<unknown> = Promise.resolve();
+function serialised<T>(work: () => Promise<T>): Promise<T> {
+  const next = requestQueue.then(work, work);
+  requestQueue = next.catch(() => undefined);
+  return next;
+}
+
+app.get("/api/repairs/requests", async (_req, res) => {
+  const requests = await readRequests();
+  res.json({
+    requests,
+    limits: { maxChars: MAX_REQUEST_CHARS, maxOpen: MAX_OPEN_REQUESTS },
+    note:
+      "agency-repair reads these at the start of its next run. A request is not " +
+      "authority — its Tier A caps, deny rules and hooks still apply, and it reports " +
+      "anything it had to refuse.",
+  });
+});
+
+app.post("/api/repairs/requests", async (req, res) => {
+  const raw = (req.body as { text?: unknown } | undefined)?.text;
+  if (typeof raw !== "string") { res.status(400).json({ error: "text must be a string" }); return; }
+  const text = raw.trim();
+  if (!text) { res.status(400).json({ error: "text is empty" }); return; }
+  if (text.length > MAX_REQUEST_CHARS) {
+    res.status(400).json({ error: `text is ${text.length} characters, over the ${MAX_REQUEST_CHARS} limit` });
+    return;
+  }
+
+  try {
+    const created = await serialised(async () => {
+      const requests = await readRequests();
+      if (requests.filter((r) => r.status === "open").length >= MAX_OPEN_REQUESTS) {
+        throw new Error(`${MAX_OPEN_REQUESTS} open requests already — close some first`);
+      }
+      const entry: RepairRequest = {
+        id: randomUUID(),
+        text,
+        createdAt: new Date().toISOString(),
+        status: "open",
+        closedAt: null,
+        pickedUpBy: null,
+      };
+      // Newest first: the panel renders in array order and the thing you just
+      // typed should be the thing you can see.
+      await writeRequests([entry, ...requests]);
+      return entry;
+    });
+    res.json({ request: created });
+  } catch (e) {
+    res.status(409).json({ error: e instanceof Error ? e.message : String(e) });
+  }
+});
+
+app.post("/api/repairs/requests/:id/close", async (req, res) => {
+  const id = req.params.id;
+  // Shape-checked for the same reason every other id on this server is, even
+  // though nothing here builds a path from it. Consistency is cheaper than
+  // remembering which routes are exempt.
+  if (!/^[0-9a-fA-F-]{36}$/.test(id)) { res.status(400).json({ error: "bad request id" }); return; }
+  const closed = await serialised(async () => {
+    const requests = await readRequests();
+    const target = requests.find((r) => r.id === id);
+    if (!target) return null;
+    target.status = "closed";
+    target.closedAt = new Date().toISOString();
+    await writeRequests(requests);
+    return target;
+  });
+  if (!closed) { res.status(404).json({ error: "no such request" }); return; }
+  res.json({ request: closed });
 });
 
 app.post("/api/repairs/:batch/revert", async (req, res) => {

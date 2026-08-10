@@ -142,6 +142,29 @@ export interface RepairBatch {
   updatedAt: string | null;
 }
 
+/**
+ * A job typed into agency-repair's panel.
+ *
+ * `pickedUpBy` is written by the bot, not by the browser — it is how a request
+ * stops being a wish and starts being something a named run took responsibility
+ * for. An open request nothing has picked up yet reads differently from one a
+ * run has seen and left open, and the panel shows the difference.
+ */
+export interface RepairRequest {
+  id: string;
+  text: string;
+  createdAt: string;
+  status: "open" | "closed";
+  closedAt: string | null;
+  pickedUpBy: string | null;
+}
+
+export interface RepairRequests {
+  requests: RepairRequest[];
+  limits: { maxChars: number; maxOpen: number };
+  note: string;
+}
+
 export function getToken(): string {
   return localStorage.getItem(TOKEN_KEY) ?? "";
 }
@@ -218,4 +241,9 @@ export const api = {
   repairs: () => req<{ batches: RepairBatch[]; note: string }>("/api/repairs"),
   revertRepair: (batch: string) =>
     req<{ batch: string; exitCode: number; output: string }>(`/api/repairs/${encodeURIComponent(batch)}/revert`, { method: "POST" }),
+  repairRequests: () => req<RepairRequests>("/api/repairs/requests"),
+  addRepairRequest: (text: string) =>
+    req<{ request: RepairRequest }>("/api/repairs/requests", { method: "POST", body: JSON.stringify({ text }) }),
+  closeRepairRequest: (id: string) =>
+    req<{ request: RepairRequest }>(`/api/repairs/requests/${encodeURIComponent(id)}/close`, { method: "POST" }),
 };

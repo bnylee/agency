@@ -474,6 +474,54 @@ const REPAIRS: RepairBatch[] = [
   },
 ];
 
+/* ------------------------------------------------------- repair requests */
+
+/**
+ * The demo's request queue is real inside the page and nowhere else.
+ *
+ * It lives in this array for the life of the tab: you can type a request, watch
+ * it appear, close it, and it behaves exactly as it does against a real server.
+ * Reload and it is gone, because there is no server and nothing to write to.
+ * That is the honest behaviour — the alternative is a Send button that silently
+ * does nothing, which teaches a visitor the wrong thing about the feature.
+ */
+let DEMO_REQUESTS: {
+  id: string; text: string; createdAt: string;
+  status: "open" | "closed"; closedAt: string | null; pickedUpBy: string | null;
+}[] = [
+  {
+    id: "11111111-1111-4111-8111-111111111111",
+    text: "sam-research can't reach GLORIA at all — ielab.info is client-rendered so WebFetch only extracts the literal text 'IELAB'. Either find a fetch path that runs JavaScript, or read the release notes inside the release 060 files instead.",
+    createdAt: iso(now - 26 * MS_HOUR),
+    status: "open",
+    pickedUpBy: "agency-repair " + day(0),
+    closedAt: null,
+  },
+  {
+    id: "22222222-2222-4222-8222-222222222222",
+    text: "The disk-composition bar shows a category with 0 files as a hairline sliver. It should collapse to nothing rather than render a stripe that decodes to no quantity.",
+    createdAt: iso(now - 5 * MS_HOUR),
+    status: "open",
+    pickedUpBy: null,
+    closedAt: null,
+  },
+  {
+    id: "33333333-3333-4333-8333-333333333333",
+    text: "Panel headline block was blank on every agency-repair report — the parser wanted '**Did** — text' and this bot writes '**Did**' alone with a list underneath.",
+    createdAt: iso(now - 3 * MS_DAY),
+    status: "closed",
+    pickedUpBy: "agency-repair " + day(-2),
+    closedAt: iso(now - 2 * MS_DAY),
+  },
+];
+
+const REQUEST_LIMITS = { maxChars: 2000, maxOpen: 200 };
+
+const REQUEST_NOTE =
+  "Demo — this queue lives in the page and is gone on reload. Against a real Agency it is " +
+  "written to agency-repair/state/requests.json and read at the start of the next run. A " +
+  "request is not authority: the bot's Tier A caps, deny rules and hooks still apply.";
+
 /* ------------------------------------------------------------ run reports */
 
 /**
@@ -580,11 +628,44 @@ class DemoNotFound extends Error {
   status = 404;
 }
 
+class DemoBadRequest extends Error {
+  status = 400;
+}
+
 /** Everything the demo can answer, keyed the way `api.ts` asks for it. */
-function resolve(pathname: string, method: string): unknown {
+function resolve(pathname: string, method: string, body: unknown): unknown {
   const parts = pathname.replace(/^\/api\//, "").split("/").map(decodeURIComponent);
 
   if (method === "POST") {
+    // Requests are the exception to the rule below: they DO mutate, because
+    // they mutate an array in this page rather than anything on a disk. A Send
+    // button that reported success and then showed nothing would teach a
+    // visitor that the feature does not work.
+    if (parts[0] === "repairs" && parts[1] === "requests" && parts.length === 2) {
+      const text = String((body as { text?: unknown } | undefined)?.text ?? "").trim();
+      if (!text) throw new DemoBadRequest("text is empty");
+      if (text.length > REQUEST_LIMITS.maxChars) {
+        throw new DemoBadRequest(`text is ${text.length} characters, over the ${REQUEST_LIMITS.maxChars} limit`);
+      }
+      const entry = {
+        id: crypto.randomUUID(),
+        text,
+        createdAt: iso(Date.now()),
+        status: "open" as const,
+        closedAt: null,
+        pickedUpBy: null,
+      };
+      DEMO_REQUESTS = [entry, ...DEMO_REQUESTS];
+      return { request: entry };
+    }
+    if (parts[0] === "repairs" && parts[1] === "requests" && parts[3] === "close") {
+      const target = DEMO_REQUESTS.find((r) => r.id === parts[2]);
+      if (!target) throw new DemoNotFound("no such request");
+      target.status = "closed";
+      target.closedAt = iso(Date.now());
+      return { request: target };
+    }
+
     // The demo has no server to act on. Mutating routes report the shape of a
     // success and change nothing, which is the honest answer: the button works,
     // there is simply nothing behind it here.
@@ -628,7 +709,12 @@ function resolve(pathname: string, method: string): unknown {
     case "portfolio": return PORTFOLIO;
     case "media": return MEDIA;
     case "relevance": return RELEVANCE;
-    case "repairs": return { batches: REPAIRS, note: "Every batch has a before/ snapshot. Revert moves bot-created files aside rather than deleting them." };
+    case "repairs": {
+      if (parts[1] === "requests") {
+        return { requests: DEMO_REQUESTS, limits: REQUEST_LIMITS, note: REQUEST_NOTE };
+      }
+      return { batches: REPAIRS, note: "Every batch has a before/ snapshot. Revert moves bot-created files aside rather than deleting them." };
+    }
     default: throw new DemoNotFound(`no demo route for ${pathname}`);
   }
 }
@@ -640,7 +726,13 @@ function resolve(pathname: string, method: string): unknown {
  */
 export async function demoRequest<T>(pathname: string, init?: RequestInit): Promise<T> {
   await new Promise((r) => setTimeout(r, 90));
-  return resolve(pathname, init?.method ?? "GET") as T;
+  let body: unknown;
+  if (typeof init?.body === "string") {
+    // A malformed body is the caller's bug, and swallowing it here would hide
+    // it behind a 404 from the router instead.
+    try { body = JSON.parse(init.body); } catch { throw new DemoBadRequest("body is not JSON"); }
+  }
+  return resolve(pathname, init?.method ?? "GET", body) as T;
 }
 
-export { DemoNotFound };
+export { DemoBadRequest, DemoNotFound };

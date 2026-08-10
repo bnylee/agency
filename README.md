@@ -24,7 +24,7 @@ deletion.
 | `media-bot` | One digest from Gmail, Microsoft Graph, Canvas and published `.ics` feeds | Daily | Moves junk-classified mail to a label, capped at 200/run, each move recorded with the rule that condemned it. Never deletes, never sends, never replies, never marks read. |
 | `finance-research` | Pre-market equity report from SEC EDGAR filings, fundamentals and price data | Weekdays 6:00am | Paper trades only, inside a simulated $10,000 account. No brokerage, no real money, no order routing. |
 | `disk-cleanup` | Ranks regenerable files and installed-program footprint by last use | Weekly | Moves scan candidates to a dated quarantine, capped at 25 GB / 5,000 files per run. Never deletes, never uninstalls. |
-| `agency-repair` | Deterministic health probes over every agent and the control plane | Daily | Applies a fix to control-plane source where a named probe failed before and passes after, every original file snapshotted first. Capped at 12 files / 400 lines. |
+| `agency-repair` | A request queue you type into, plus deterministic health probes over every agent and the control plane | Daily | Applies a fix to control-plane source where a named probe failed before and passes after, every original file snapshotted first. Capped at 12 files / 400 lines. |
 | `sam-research` | Watches OECD, IMF and GLORIA releases and licence terms | Weekly | Nothing. Reports only. |
 | `interface-design` | Owns the design system the control plane is generated from | On demand | Nothing. Interactive only. |
 
@@ -49,6 +49,28 @@ works. Every control is reachable from a `⌘K` palette.
 | --- | --- |
 | ![finance-research](docs/02-finance-research.png) | ![media-bot](docs/03-media-bot.png) |
 | A simulated account, read-only | A digest, with the rule that classified each message shown inline |
+
+### Telling the repair agent what to fix
+
+![agency-repair's request queue](docs/01-agency-repair.png)
+
+`agency-repair`'s panel opens on a box you type into. The agent reads the queue
+at the start of its next run, works the open entries before its own health
+check, and reports on each one — done, drafted for approval, or refused with the
+rule that blocked it.
+
+**This is the only endpoint that writes into the Agency on a click**, and the
+write is deliberately tiny: one hardcoded path, inert JSON text that never
+becomes a path or a command line, capped at 2,000 characters and 200 open
+requests, written through a rename so a reader never sees a torn file.
+
+**A request is a note asking for something, not authority to do it.** Every
+mechanical limit still binds when the agent acts on one — the Tier A cap of 12
+files and 400 lines, the deny rules keeping it out of sibling agents, `.claude/`
+directories and lockfiles, and its pre-execution hooks. Anything outside them is
+refused by a hook rather than by the model's judgement. And only a human closes a
+request: the agent marks what it picked up and leaves the status alone, because
+an agent that closes its own tickets is grading its own homework.
 
 ### Security model
 

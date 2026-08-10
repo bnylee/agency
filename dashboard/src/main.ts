@@ -3,7 +3,7 @@ import { ApiError, DEMO, api, getToken, setToken, type Bot, type Overview, type 
 import { mount, type StudioHandle } from "./scene/studio";
 import { botRow, el, renderMetrics, renderQuarantine, renderTable, sectionHead, toast } from "./ui/components";
 import { closePanel, openPanel, panelWidth, type PanelAction, type PanelSpec, type PanelView } from "./ui/panel";
-import { mediaView, obsidianView, portfolioView, repairsView } from "./ui/views";
+import { mediaView, obsidianView, portfolioView, repairsView, requestsView } from "./ui/views";
 import { mountPalette, type Command } from "./ui/palette";
 import { attachPress } from "./motion/registers";
 
@@ -74,7 +74,13 @@ function specFor(bot: Bot): PanelSpec {
   // portfolio" would be more machinery than the fact deserves.
   const views: PanelView[] = [];
   if (bot.id === "finance-research") views.push(portfolioView());
-  if (bot.id === "agency-repair") views.push(repairsView(() => { void refresh(); }));
+  if (bot.id === "agency-repair") {
+    // Requests leads for this bot. Every other panel opens on the record of
+    // what happened; this is the one bot you open to tell it something, so the
+    // box you type into is the thing that should be in front of you.
+    views.push(requestsView());
+    views.push(repairsView(() => { void refresh(); }));
+  }
   // media-bot's digest leads, ahead of Reports: for this bot the live state IS the
   // product, and the report is the record of how it was assembled. Expressed as
   // `lead: true` on the view itself rather than as an ordering rule here — see
