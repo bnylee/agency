@@ -27,6 +27,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Turns Pages on for the repository if it is not already, so the first
+      # push deploys rather than failing with "Pages is not enabled" and
+      # needing a visit to Settings before anything works.
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
